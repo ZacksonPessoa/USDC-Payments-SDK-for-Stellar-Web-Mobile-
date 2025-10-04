@@ -91,15 +91,16 @@ classDiagram
 
 ```mermaid
 flowchart LR
-  A[User in Merchant App] --> B[SDK: start SEP-24 flow]
-  B --> C[Open Provider/Anchor interactive URL]
-  C --> D{KYC needed?}
-  D -- yes --> E[Collect KYC (provider or app)]
-  D -- no --> F[Proceed to deposit/withdraw]
-  E --> F
-  F --> G[Provider completes transfer]
-  G --> H[SDK callback]
-  H --> I[Merchant Backend webhook: deposit/withdraw.completed]
+    A[User in Merchant App] --> B[SDK: start SEP-24 flow]
+    B --> C[Open Provider or Anchor interactive URL]
+    C --> D{KYC required?}
+    D -->|Yes| E[Collect KYC from provider or app]
+    D -->|No| F[Proceed to deposit or withdraw]
+    E --> F
+    F --> G[Provider completes transfer]
+    G --> H[SDK callback]
+    H --> I[Merchant Backend webhook: deposit or withdraw completed]
+
 ```
 
 ---
