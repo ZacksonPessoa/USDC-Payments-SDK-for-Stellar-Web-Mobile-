@@ -1,4 +1,4 @@
-# USDC Payments SDK for Stellar (Web + Mobile)
+S# USDC Payments SDK for Stellar (Web + Mobile)
 
 > **Disclaimer:** This is an independent community project, **not affiliated with or endorsed by** the Stellar Development Foundation. “Stellar” is used only to indicate protocol compatibility.
 
@@ -92,7 +92,7 @@ A **universal Payments SDK** that makes Stellar integration as simple as Stripe/
 ---
 
 ## Team
-- **Product Lead:** You (CriptoPix, Anchor-in-a-Box)  
+- **Product Lead:** Zackson Pessoa 
 - **Backend Engineers:** Stellar SEPs, Node/Rust  
 - **Frontend/Mobile Engineer:** React + React Native  
 - **Community/Docs Contributor**
@@ -100,10 +100,9 @@ A **universal Payments SDK** that makes Stellar integration as simple as Stripe/
 ---
 
 ## Links
-- **Project Repository:** [github.com/yourorg/stellar-payments-sdk](https://github.com/yourorg/stellar-payments-sdk)  
-- **Stellar Community Fund Submission:** [https://communityfund.stellar.org](https://communityfund.stellar.org)  
-- **SCF Handbook:** [https://communityfund.stellar.org/docs/](https://communityfund.stellar.org/docs/)  
-- **Brand Guidelines:** [https://stellar.org/brand](https://stellar.org/brand)
+- **Project Repository:** [github.com/yourorg/stellar-payments-sdk]
+(https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-)
+
 
 ---
 
