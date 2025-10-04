@@ -1,31 +1,22 @@
-# 🔀 Pull Request
-
-## Description
-<!-- Briefly describe your changes and link related issues. -->
-
-Fixes: # (issue)
-
-## Type of Change
-- [ ] 🐞 Bug fix
-- [ ] 💡 New feature
-- [ ] 🧹 Refactor / cleanup
-- [ ] 🧪 Test / documentation update
-
-## How Has This Been Tested?
-<!-- Describe the tests you ran and their results. -->
-- [ ] Local dev server
-- [ ] Unit tests
-- [ ] Testnet transaction
-- [ ] Manual verification
-
-## Screenshots (if applicable)
-
-## Checklist
-- [ ] I ran `npm run build` and verified it compiles
-- [ ] I added or updated documentation as needed
-- [ ] I have reviewed my own code before requesting a review
-
+---
+name: 💡 Feature Request
+about: Suggest a new feature or improvement for the USDC Payments SDK
+title: "[FEATURE] "
+labels: enhancement
+assignees: ''
 ---
 
-> 🪙 **Project:** USDC Payments SDK for Stellar  
-> 💻 **License:** MIT — open source, community-driven.
+### Summary
+<!-- A clear and concise description of the feature you'd like to see. -->
+
+### Problem
+<!-- What problem does this feature solve? -->
+
+### Proposed Solution
+<!-- How would you like to see it implemented? -->
+
+### Alternatives
+<!-- Any alternative solutions you've considered? -->
+
+### Additional Context
+<!-- Add any other context, mockups, or references. -->
