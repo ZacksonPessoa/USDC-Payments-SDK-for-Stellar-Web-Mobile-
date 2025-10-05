@@ -1,0 +1,49 @@
+{
+  "name": "@zacksonpessoa/usdc-payments-sdk",
+  "version": "0.1.0",
+  "description": "One-line checkout SDK to pay with USDC on Stellar (Web + Mobile).",
+  "license": "ISC",
+  "author": "Zackson Pessoa",
+  "homepage": "https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/issues"
+  },
+
+  
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+
+  "files": ["dist"],
+  "sideEffects": false,
+
+  "scripts": {
+    "build": "tsup src/index.ts --dts --format esm,cjs --sourcemap",
+    "dev": "tsup src/index.ts --dts --format esm,cjs --watch",
+    "clean": "rm -rf dist",
+    "prepare": "npm run build",
+    "test": "echo \"(sem testes ainda)\""
+  },
+
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "stellar-sdk": "^13.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}
