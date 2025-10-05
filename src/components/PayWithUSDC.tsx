@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { createPaymentSession } from "../core/createPaymentSession";
-import { signAndSubmit } from "../core/signAndSubmit";
+import type { PaymentRequest, WalletAdapter, NetworkName } from "../types";
 
 type Props = {
   amount: number;
-  destination: string;         // G... destino
-  source: string;              // G... da conta que vai pagar
-  getSecret: () => Promise<string>; // função que retorna a S... (apenas DEV!)
-  assetCode?: string;          // default "XLM"
-  issuer?: string;             // se não for XLM
+  destination: string;             // G...
+  assetCode?: string;              // "XLM" (default) ou "USDC"
+  issuer?: string;                 // se non-native
   memo?: string;
+  network?: NetworkName;           // default "TESTNET"
+  wallet: WalletAdapter;           // 👈 FreighterWallet
+  source?: string;                 // opcional; se não vier, pega do wallet
   label?: string;
   onSuccess?: (hash: string) => void;
   onError?: (e: unknown) => void;
@@ -18,11 +19,12 @@ type Props = {
 export default function PayWithUSDC({
   amount,
   destination,
-  source,
-  getSecret,
   assetCode = "XLM",
   issuer,
   memo,
+  network = "TESTNET",
+  wallet,
+  source,
   label = "Pay",
   onSuccess,
   onError,
@@ -33,19 +35,21 @@ export default function PayWithUSDC({
     try {
       setLoading(true);
 
-      const session = await createPaymentSession(
-        {
-          amount,
-          assetCode,
-          issuer,
-          destination,
-          memo,
-        },
-        source // usa como sourcePublicKey para pegar o sequence
-      );
+      const publicKey = source ?? (await wallet.getPublicKey());
 
-      const secret = await getSecret(); // ⚠️ DEV ONLY
-      const { hash } = await signAndSubmit(session.xdr, secret);
+      const req: PaymentRequest = {
+        amount,
+        assetCode,
+        destination,
+        memo,
+      };
+      if (assetCode.toUpperCase() !== "XLM") {
+        if (!issuer) throw new Error("issuer required for non-native assets");
+        req.issuer = issuer;
+      }
+
+      const session = await createPaymentSession(req, publicKey);
+      const { hash } = await wallet.signAndSubmit(session.xdr, network);
 
       onSuccess?.(hash);
     } catch (e) {

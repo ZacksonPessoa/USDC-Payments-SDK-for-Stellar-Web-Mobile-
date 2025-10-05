@@ -10,4 +10,5 @@ export default defineConfig({
   target: "es2020",              // compatível com nosso tsconfig
   skipNodeModulesBundle: true,   // não embute dependências externas
   splitting: false,              // bundle único
+  external: ["react", "react-dom"], // React deve ser externo
 });

@@ -2,105 +2,322 @@
 
 **One-line checkout SDK to make paying with USDC on Stellar as easy as Stripe.**
 
----
-
-## ✨ Features (Phase 1)
-- `<PayWithUSDC />` React component (drop-in checkout).
-- Transaction builder (`createPaymentSession`).
-- `signAndSubmit` helper (wraps Stellar SDK + Horizon).
-- Ready for Testnet integration.
-- Example Next.js webshop included.
+[![npm version](https://badge.fury.io/js/%40zacksonpessoa%2Fusdc-payments-sdk.svg)](https://badge.fury.io/js/%40zacksonpessoa%2Fusdc-payments-sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-blue.svg)](https://www.typescriptlang.org/)
 
 ---
 
-## 🚀 Quickstart
+## ✨ Features
 
-### Install
+- **`<PayWithUSDC />`** - Drop-in React component for instant checkout
+- **`createPaymentSession()`** - Build Stellar payment transactions
+- **`signAndSubmit()`** - Sign and submit transactions to Horizon
+- **Wallet Integration** - Built-in Freighter wallet adapter
+- **TypeScript Support** - Full type safety and IntelliSense
+- **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
+- **Testnet Ready** - Complete testnet integration with examples
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
 ```bash
-npm i @yourorg/payments-sdk
-# USDC Payments SDK for Stellar (Web + Mobile)
-
-**One-line checkout SDK to make paying with USDC on Stellar as easy as Stripe.**
-
----
-
-## ✨ Features (Phase 1)
-- `<PayWithUSDC />` React component (drop-in checkout).
-- `createPaymentSession()` – build a USDC payment transaction.
-- `signAndSubmit()` – sign & submit transactions via Horizon.
-- Error handling (success / fail callbacks).
-- Ready for **Testnet integration**.
-- Example Next.js webshop included.
-
----
-
-## 🚀 Quickstart
-
-### Install
-```bash
-npm i @yourorg/payments-sdk
+npm install @zacksonpessoa/usdc-payments-sdk
 ```
 
-### Usage (Web)
-```tsx
-import { PayWithUSDC } from '@yourorg/payments-sdk'
+### Basic Usage
 
+```tsx
+import React from 'react';
+import { PayWithUSDC, FreighterWallet } from '@zacksonpessoa/usdc-payments-sdk';
+
+function Checkout() {
+  const wallet = new FreighterWallet();
+
+  return (
+    <PayWithUSDC
+      amount={50}
+      destination="GDESTINATIONADDRESS..."
+      assetCode="USDC"
+      issuer="GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL"
+      wallet={wallet}
+      onSuccess={(hash) => console.log('Payment confirmed:', hash)}
+      onError={(error) => console.error('Payment failed:', error)}
+    />
+  );
+}
+```
+
+### XLM Payment (Native Asset)
+
+```tsx
 <PayWithUSDC
-  amount="50"
+  amount={10}
   destination="GDESTINATIONADDRESS..."
-  network="testnet"
-  onSuccess={(txHash) => console.log('Payment confirmed:', txHash)}
-  onError={(err) => console.error('Payment failed:', err)}
+  assetCode="XLM"
+  wallet={wallet}
+  onSuccess={(hash) => console.log('XLM sent:', hash)}
 />
 ```
 
 ---
 
-## 📦 Package Exports
-- **PayWithUSDC** → React component (UI checkout).
-- **createPaymentSession()** → Builds a Stellar USDC payment transaction.
-- **signAndSubmit()** → Signs & submits the transaction to Horizon.
+## 📦 API Reference
+
+### PayWithUSDC Component
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `amount` | `number` | ✅ | Payment amount |
+| `destination` | `string` | ✅ | Destination Stellar address |
+| `wallet` | `WalletAdapter` | ✅ | Wallet implementation |
+| `assetCode` | `string` | ❌ | Asset code (default: "XLM") |
+| `issuer` | `string` | ❌ | Asset issuer (required for non-native assets) |
+| `memo` | `string` | ❌ | Transaction memo |
+| `network` | `"TESTNET" \| "PUBLIC"` | ❌ | Network (default: "TESTNET") |
+| `source` | `string` | ❌ | Source address (optional) |
+| `label` | `string` | ❌ | Button label (default: "Pay") |
+| `onSuccess` | `(hash: string) => void` | ❌ | Success callback |
+| `onError` | `(error: unknown) => void` | ❌ | Error callback |
+
+### Core Functions
+
+#### `createPaymentSession(request, sourcePublicKey?)`
+
+Creates a Stellar payment transaction session.
+
+```typescript
+import { createPaymentSession } from '@zacksonpessoa/usdc-payments-sdk';
+
+const session = await createPaymentSession({
+  amount: 50,
+  assetCode: "USDC",
+  issuer: "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL",
+  destination: "GDESTINATIONADDRESS...",
+  memo: "Payment for order #123"
+}, "GSOURCEADDRESS...");
+```
+
+#### `signAndSubmit(xdr, secretKey)`
+
+Signs and submits a transaction to Stellar Horizon.
+
+```typescript
+import { signAndSubmit } from '@zacksonpessoa/usdc-payments-sdk';
+
+const result = await signAndSubmit(session.xdr, "S...SECRETKEY");
+console.log('Transaction hash:', result.hash);
+```
+
+### Wallet Adapter Interface
+
+```typescript
+interface WalletAdapter {
+  getPublicKey(): Promise<string>;
+  signAndSubmit(xdr: string, network: NetworkName): Promise<{ hash: string }>;
+}
+```
 
 ---
 
-## 🧪 Example App (Next.js)
-A working demo is provided:
+## 🧪 Examples
+
+### Next.js Demo
+
+A complete working example is included:
 
 ```bash
-cd examples/nextjs-demo
+cd examples
 npm install
 npm run dev
 ```
 
-This will start a demo webshop on:  
-👉 [http://localhost:3000](http://localhost:3000)
+Visit [http://localhost:3000](http://localhost:3000) to see the demo.
+
+### Sandbox Testing
+
+Test the SDK functionality with the included sandbox:
+
+```bash
+npm run build
+node sandbox.mjs
+```
+
+This will:
+1. Create a testnet account
+2. Fund it via Friendbot
+3. Create a payment session
+4. Sign and submit a transaction
+5. Demonstrate component usage
 
 ---
 
-## 🛠️ Tech Stack
-- **Language:** TypeScript  
-- **Frontend:** React 18  
-- **Blockchain:** Stellar SDK (`stellar-sdk`)  
-- **Build:** tsup + tsconfig  
-- **CI/CD:** GitHub Actions (build & publish)  
+## 🛠️ Development
+
+### Project Structure
+
+```
+src/
+├── components/
+│   └── PayWithUSDC.tsx      # Main React component
+├── core/
+│   ├── createPaymentSession.ts  # Transaction builder
+│   ├── signAndSubmit.ts         # Transaction submitter
+│   └── freighterAdapter.ts      # Freighter wallet adapter
+├── types.ts                     # TypeScript definitions
+└── index.ts                     # Main exports
+```
+
+### Build Commands
+
+```bash
+# Development build with watch
+npm run dev
+
+# Production build
+npm run build
+
+# Clean build artifacts
+npm run clean
+```
+
+### Tech Stack
+
+- **Language:** TypeScript 5.9+
+- **Frontend:** React 19
+- **Blockchain:** Stellar SDK 13.3.0
+- **Build:** tsup (ESM + CJS + DTS)
+- **Testing:** Node.js sandbox + Next.js example
+
+---
+
+## 🔧 Configuration
+
+### TypeScript
+
+The SDK is fully typed. Import types as needed:
+
+```typescript
+import type { 
+  PaymentRequest, 
+  PaymentSession, 
+  WalletAdapter, 
+  NetworkName 
+} from '@zacksonpessoa/usdc-payments-sdk';
+```
+
+### Build Configuration
+
+The SDK builds to multiple formats:
+- **ESM** (`dist/index.js`) - Modern bundlers
+- **CJS** (`dist/index.cjs`) - Node.js/legacy bundlers  
+- **DTS** (`dist/index.d.ts`) - TypeScript definitions
+
+---
+
+## 🌐 Network Support
+
+### Testnet (Default)
+- **Horizon:** `https://horizon-testnet.stellar.org`
+- **Friendbot:** `https://friendbot.stellar.org`
+- **Network Passphrase:** Testnet
+
+### Mainnet (Production)
+- **Horizon:** `https://horizon.stellar.org`
+- **Network Passphrase:** Public
+
+---
+
+## 🔒 Security
+
+### Production Considerations
+
+⚠️ **Never expose private keys in production apps!**
+
+The SDK is designed to work with wallet integrations:
+
+- **Freighter** - Browser extension wallet
+- **Wallet SDK** - Mobile wallet integration
+- **Custom adapters** - Implement `WalletAdapter` interface
+
+### Testnet Usage
+
+The included examples use testnet for development and testing. Always use testnet during development.
 
 ---
 
 ## 📅 Roadmap
-- **Phase 1:** Web SDK (`<PayWithUSDC />`, tx builder, docs, examples).  
-- **Phase 2:** Backend webhooks (payment.confirmed / failed) + SEP-24 helpers.  
-- **Phase 3:** React Native SDK + mobile demo app.  
-- **Phase 4:** QA, docs, testnet pilots.  
-- **Phase 5:** Mainnet release + merchant/fintech partner pilot.  
+
+### Phase 1 ✅ (Current)
+- [x] Core SDK with React component
+- [x] Transaction builder and submitter
+- [x] Freighter wallet integration
+- [x] TypeScript support
+- [x] Testnet integration
+- [x] Next.js example app
+
+### Phase 2 (Planned)
+- [ ] Backend webhook support
+- [ ] SEP-24 on/off-ramp helpers
+- [ ] Payment confirmation flows
+- [ ] Error handling improvements
+
+### Phase 3 (Planned)
+- [ ] React Native SDK
+- [ ] Mobile wallet adapters
+- [ ] Cross-platform examples
+
+### Phase 4 (Planned)
+- [ ] Mainnet production release
+- [ ] Merchant pilot programs
+- [ ] Performance optimizations
 
 ---
 
-## ⚠️ Security Note
-For demo purposes, the example app uses a test secret key in the browser.  
-**Never expose private keys in production apps.**  
-Integrations should rely on **wallets** (Freighter, Wallet SDK, etc).  
+## 🤝 Contributing
+
+We welcome contributions! Please see our contributing guidelines:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+### Development Setup
+
+```bash
+git clone https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-
+cd USDC-Payments-SDK-for-Stellar-Web-Mobile-
+npm install
+npm run dev
+```
 
 ---
 
-## 📖 License
-MIT – open source, community-driven.
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Stellar Development Foundation** - For the amazing blockchain platform
+- **Stellar Community** - For feedback and support
+- **Open Source Contributors** - For making this possible
+
+---
+
+## 📞 Support
+
+- **Issues:** [GitHub Issues](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/discussions)
+- **Documentation:** [docs/](docs/)
+
+---
+
+**Made with ❤️ for the Stellar ecosystem**

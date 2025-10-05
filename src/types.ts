@@ -1,3 +1,5 @@
+export type NetworkName = "TESTNET" | "PUBLIC";
+
 export type PaymentRequest = {
     amount: number;              // ex.: 10
     assetCode: string;           // ex.: "USDC"
@@ -11,4 +13,9 @@ export type PaymentRequest = {
     request: PaymentRequest;
     xdr: string;
   };
-  
+ 
+
+export interface WalletAdapter {
+  getPublicKey(): Promise<string>;
+  signAndSubmit(xdr: string, network: NetworkName): Promise<{ hash: string }>;
+}

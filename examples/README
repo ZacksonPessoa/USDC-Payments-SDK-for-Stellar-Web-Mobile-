@@ -1,0 +1,450 @@
+# Next.js Example — USDC Payments SDK Demo
+
+This is a complete working example of how to integrate the USDC Payments SDK for Stellar into a Next.js application.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Freighter wallet extension (for browser testing)
+
+### Installation & Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to see the demo.
+
+---
+
+## 📁 Project Structure
+
+```
+examples/
+├── pages/
+│   └── index.tsx           # Main demo page
+├── package.json           # Dependencies and scripts
+├── next.config.cjs        # Next.js configuration
+├── tsconfig.json          # TypeScript configuration
+└── README                 # This file
+```
+
+---
+
+## 🧩 Demo Features
+
+### **SDK Integration**
+- ✅ **PayWithUSDC Component** - Drop-in payment button
+- ✅ **Wallet Integration** - Mock wallet adapter implementation
+- ✅ **Error Handling** - Complete error handling examples
+- ✅ **Success Callbacks** - Payment confirmation handling
+
+### **UI Components**
+- ✅ **Responsive Design** - Works on desktop and mobile
+- ✅ **Loading States** - Visual feedback during transactions
+- ✅ **Error Messages** - User-friendly error display
+- ✅ **Success Notifications** - Payment confirmation alerts
+
+---
+
+## 💻 Code Examples
+
+### Basic Integration
+
+```tsx
+import React from "react";
+import { PayWithUSDC } from "../../dist/index.js";
+import type { WalletAdapter } from "../../src/types";
+
+// Mock wallet for demonstration
+const mockWallet: WalletAdapter = {
+  getPublicKey: async () => "GDGDU4ZDA2ALEOT3WP5KTQIAC7NYGTFJY65VFBMSIO4YA4EOD72W7MVY",
+  signAndSubmit: async (xdr: string, network: "TESTNET" | "PUBLIC") => {
+    console.log("Mock: Signing transaction...");
+    return { hash: "mock-transaction-hash-" + Date.now() };
+  }
+};
+
+export default function Home() {
+  return (
+    <div style={{ padding: 32 }}>
+      <h1>🎉 Stellar USDC Payments SDK Demo</h1>
+      
+      <PayWithUSDC
+        amount={1}
+        assetCode="XLM"
+        destination="GBZXN7PIRZGNMHGAJ3K4KDFKJ7B3KFW2LLAV7POXNRJBI2R6BQR6E3RH"
+        wallet={mockWallet}
+        onSuccess={(hash: string) => alert(`✅ Payment sent! Hash: ${hash}`)}
+        onError={(error: unknown) => alert(`❌ Error: ${error}`)}
+      />
+    </div>
+  );
+}
+```
+
+### USDC Payment Example
+
+```tsx
+<PayWithUSDC
+  amount={50}
+  assetCode="USDC"
+  issuer="GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL"
+  destination="GDESTINATIONADDRESS..."
+  wallet={wallet}
+  memo="Payment for order #123"
+  label="Pay with USDC"
+  onSuccess={(hash) => console.log('USDC payment confirmed:', hash)}
+  onError={(error) => console.error('USDC payment failed:', error)}
+/>
+```
+
+### Custom Styling
+
+```tsx
+<PayWithUSDC
+  amount={25}
+  destination="GDESTINATIONADDRESS..."
+  wallet={wallet}
+  label="💳 Pay Now"
+  onSuccess={(hash) => {
+    // Custom success handling
+    setPaymentStatus('completed');
+    setTransactionHash(hash);
+  }}
+  onError={(error) => {
+    // Custom error handling
+    setPaymentStatus('failed');
+    setErrorMessage(error.message);
+  }}
+/>
+```
+
+---
+
+## 🔧 Configuration
+
+### Next.js Configuration (`next.config.cjs`)
+
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+};
+
+module.exports = nextConfig;
+```
+
+### TypeScript Configuration (`tsconfig.json`)
+
+```json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "es6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+```
+
+---
+
+## 🎨 Customization Examples
+
+### Custom Button Styling
+
+```tsx
+// Custom styled payment button
+const CustomPayButton = styled(PayWithUSDC)`
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+```
+
+### Payment Form Integration
+
+```tsx
+function PaymentForm() {
+  const [amount, setAmount] = useState(0);
+  const [destination, setDestination] = useState('');
+  
+  return (
+    <form>
+      <input
+        type="number"
+        value={amount}
+        onChange={(e) => setAmount(Number(e.target.value))}
+        placeholder="Amount"
+      />
+      
+      <input
+        type="text"
+        value={destination}
+        onChange={(e) => setDestination(e.target.value)}
+        placeholder="Destination Address"
+      />
+      
+      <PayWithUSDC
+        amount={amount}
+        destination={destination}
+        wallet={wallet}
+        disabled={!amount || !destination}
+        onSuccess={(hash) => {
+          console.log('Payment completed:', hash);
+          // Reset form
+          setAmount(0);
+          setDestination('');
+        }}
+      />
+    </form>
+  );
+}
+```
+
+---
+
+## 🧪 Testing the Integration
+
+### Manual Testing Steps
+
+1. **Start the Development Server**
+   ```bash
+   npm run dev
+   ```
+
+2. **Open Browser**
+   - Navigate to `http://localhost:3000`
+   - Verify the page loads without errors
+
+3. **Test Payment Flow**
+   - Click the payment button
+   - Verify loading state appears
+   - Check console for mock transaction logs
+   - Verify success/error callbacks work
+
+4. **Test Error Handling**
+   - Modify the destination address to be invalid
+   - Verify error handling works correctly
+
+### Automated Testing
+
+```bash
+# Run build to ensure no TypeScript errors
+npm run build
+
+# Check for linting issues
+npm run lint
+
+# Verify the build works
+npm run start
+```
+
+---
+
+## 🔒 Security Considerations
+
+### Development vs Production
+
+**Development (This Example):**
+- Uses mock wallet for demonstration
+- No real private keys exposed
+- Safe for testing and development
+
+**Production Integration:**
+- Use real wallet adapters (Freighter, WalletConnect, etc.)
+- Never expose private keys
+- Implement proper error handling
+- Add transaction validation
+
+### Best Practices
+
+```tsx
+// ✅ Good: Production-ready error handling
+<PayWithUSDC
+  amount={amount}
+  destination={destination}
+  wallet={realWallet}
+  onSuccess={(hash) => {
+    // Log success for analytics
+    analytics.track('payment_success', { hash, amount });
+    // Update UI state
+    setPaymentStatus('completed');
+  }}
+  onError={(error) => {
+    // Log error for debugging
+    console.error('Payment failed:', error);
+    // Show user-friendly message
+    setErrorMessage('Payment failed. Please try again.');
+  }}
+/>
+
+// ❌ Bad: Exposing private keys
+const badWallet = {
+  getPublicKey: () => "G...",
+  signAndSubmit: async (xdr) => {
+    // NEVER do this in production!
+    const secret = "S...PRIVATE_KEY";
+    return signAndSubmit(xdr, secret);
+  }
+};
+```
+
+---
+
+## 🚀 Deployment
+
+### Vercel Deployment
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+
+# Set environment variables
+vercel env add NEXT_PUBLIC_STELLAR_NETWORK testnet
+```
+
+### Environment Variables
+
+```bash
+# .env.local
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_HORIZON_URL=https://horizon-testnet.stellar.org
+```
+
+### Production Checklist
+
+- [ ] Replace mock wallet with real wallet integration
+- [ ] Add proper error boundaries
+- [ ] Implement transaction validation
+- [ ] Add loading states and user feedback
+- [ ] Test with real Stellar testnet
+- [ ] Add analytics and monitoring
+- [ ] Implement proper security measures
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Issue: "Cannot read properties of null (reading 'useState')"**
+- **Cause:** React bundling conflict
+- **Solution:** Ensure React is marked as external in build config
+
+**Issue: "Freighter not found"**
+- **Cause:** Freighter extension not installed
+- **Solution:** Install Freighter browser extension or use mock wallet
+
+**Issue: "Invalid destination address"**
+- **Cause:** Malformed Stellar address
+- **Solution:** Validate address format before passing to component
+
+**Issue: "Transaction failed"**
+- **Cause:** Insufficient balance or network issues
+- **Solution:** Check account balance and network connectivity
+
+### Debug Mode
+
+```tsx
+// Enable debug logging
+const debugWallet = {
+  ...mockWallet,
+  signAndSubmit: async (xdr, network) => {
+    console.log('🔍 Debug - XDR:', xdr.slice(0, 50) + '...');
+    console.log('🔍 Debug - Network:', network);
+    return mockWallet.signAndSubmit(xdr, network);
+  }
+};
+```
+
+---
+
+## 📚 Additional Resources
+
+### Documentation
+- **Main SDK README** - [../README.md](../README.md)
+- **Architecture Docs** - [../docs/architecture.md](../docs/architecture.md)
+- **API Reference** - Complete API documentation
+
+### Examples
+- **Sandbox Testing** - [../sandbox.mjs](../sandbox.mjs)
+- **Core Functions** - Direct SDK function usage
+- **Wallet Integration** - Real wallet adapter examples
+
+### Community
+- **GitHub Issues** - Bug reports and feature requests
+- **GitHub Discussions** - Community support
+- **Stellar Community** - [community.stellar.org](https://community.stellar.org)
+
+---
+
+## 🤝 Contributing
+
+### Contributing to This Example
+
+1. **Fork** the repository
+2. **Create** a feature branch
+3. **Make** your improvements
+4. **Test** thoroughly
+5. **Submit** a pull request
+
+### Example Improvements
+
+- **Additional UI Components** - More payment form examples
+- **Error Handling** - Better error display components
+- **Loading States** - Enhanced loading animations
+- **Mobile Optimization** - Better mobile experience
+- **Accessibility** - ARIA labels and keyboard navigation
+
+---
+
+**This example demonstrates the core functionality of the USDC Payments SDK. Use it as a starting point for your own integrations!**
+
+© 2025 — Open Source Project under MIT License
