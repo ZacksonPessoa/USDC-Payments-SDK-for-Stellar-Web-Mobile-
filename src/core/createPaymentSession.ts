@@ -8,6 +8,10 @@ import {
   Account,            
 } from "stellar-sdk";
 import * as StellarSDK from "stellar-sdk";
+import { WebhookManager } from "./webhookManager";
+
+// Instância global do webhook manager
+const webhookManager = new WebhookManager();
 
 export async function createPaymentSession(req: PaymentRequest, sourcePublicKey?: string): Promise<PaymentSession> {
   if (!req.amount || !req.assetCode || !req.destination) {
@@ -53,9 +57,17 @@ export async function createPaymentSession(req: PaymentRequest, sourcePublicKey?
 
   const xdr = tx.toXDR();
 
-  return {
+  const session: PaymentSession = {
     id: `session-${Date.now()}`,
     request: req,
     xdr,                  
   };
+
+  // Emite evento webhook
+  await webhookManager.emitPaymentCreated(session);
+
+  return session;
 }
+
+// Exporta o webhook manager para configuração
+export { webhookManager };

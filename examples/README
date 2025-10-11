@@ -78,9 +78,9 @@ export default function Home() {
     <div style={{ padding: 32 }}>
       <h1>🎉 Stellar USDC Payments SDK Demo</h1>
       
-      <PayWithUSDC
-        amount={1}
-        assetCode="XLM"
+    <PayWithUSDC
+      amount={1}
+      assetCode="XLM"
         destination="GBZXN7PIRZGNMHGAJ3K4KDFKJ7B3KFW2LLAV7POXNRJBI2R6BQR6E3RH"
         wallet={mockWallet}
         onSuccess={(hash: string) => alert(`✅ Payment sent! Hash: ${hash}`)}
@@ -231,7 +231,7 @@ function PaymentForm() {
       <PayWithUSDC
         amount={amount}
         destination={destination}
-        wallet={wallet}
+      wallet={wallet}
         disabled={!amount || !destination}
         onSuccess={(hash) => {
           console.log('Payment completed:', hash);

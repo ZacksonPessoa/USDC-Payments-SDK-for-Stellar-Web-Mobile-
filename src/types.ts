@@ -19,3 +19,6 @@ export interface WalletAdapter {
   getPublicKey(): Promise<string>;
   signAndSubmit(xdr: string, network: NetworkName): Promise<{ hash: string }>;
 }
+
+// Export webhook types
+export * from "./types/webhook";

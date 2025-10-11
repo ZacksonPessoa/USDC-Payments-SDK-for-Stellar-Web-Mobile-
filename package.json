@@ -32,7 +32,8 @@
     "dev": "tsup src/index.ts --dts --format esm,cjs --watch",
     "clean": "rm -rf dist",
     "prepare": "npm run build",
-    "test": "echo \"(sem testes ainda)\""
+    "test": "echo \"(sem testes ainda)\"",
+    "test:webhook": "npm run build && node examples/webhook-example.mjs"
   },
 
   "dependencies": {

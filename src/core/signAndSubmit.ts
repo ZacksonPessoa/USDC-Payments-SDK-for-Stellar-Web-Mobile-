@@ -1,4 +1,6 @@
 import * as StellarSDK from "stellar-sdk";
+import { webhookManager } from "./createPaymentSession";
+import type { PaymentRequest } from "../types";
 
 /**
  * Assina e envia uma transação XDR para a Testnet.
@@ -6,7 +8,9 @@ import * as StellarSDK from "stellar-sdk";
  */
 export async function signAndSubmit(
   xdr: string,
-  secret: string
+  secret: string,
+  sessionId?: string,
+  paymentRequest?: PaymentRequest
 ): Promise<{ hash: string }> {
   try {
     // 1) Horizon Testnet
@@ -19,11 +23,27 @@ export async function signAndSubmit(
     const signer = StellarSDK.Keypair.fromSecret(secret);
     tx.sign(signer);
 
+    // Emite evento de submissão
+    if (sessionId && paymentRequest) {
+      await webhookManager.emitPaymentSubmitted(sessionId, paymentRequest, "pending");
+    }
+
     // 4) Envia
     const res = await server.submitTransaction(tx);
+    
+    // Emite evento de confirmação
+    if (sessionId && paymentRequest) {
+      await webhookManager.emitPaymentConfirmed(sessionId, paymentRequest, res.hash);
+    }
+
     console.log("Transaction submitted:", res.hash);
     return { hash: res.hash };
   } catch (err: any) {
+    // Emite evento de falha
+    if (sessionId && paymentRequest) {
+      await webhookManager.emitPaymentFailed(sessionId, paymentRequest, err.message);
+    }
+
     console.error("Error submitting transaction:", err?.response?.data || err);
     throw new Error(err?.response?.data?.extras?.result_codes?.transaction || "Submit failed");
   }

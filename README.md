@@ -13,6 +13,7 @@
 - **`<PayWithUSDC />`** - Drop-in React component for instant checkout
 - **`createPaymentSession()`** - Build Stellar payment transactions
 - **`signAndSubmit()`** - Sign and submit transactions to Horizon
+- **`WebhookManager`** - Real-time payment notifications (NEW!)
 - **Wallet Integration** - Built-in Freighter wallet adapter
 - **TypeScript Support** - Full type safety and IntelliSense
 - **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
@@ -62,6 +63,39 @@ function Checkout() {
   onSuccess={(hash) => console.log('XLM sent:', hash)}
 />
 ```
+
+---
+
+## 🔗 Webhook Support (NEW!)
+
+Get real-time notifications about payment events:
+
+```typescript
+import { webhookManager, createPaymentSession, signAndSubmit } from '@zacksonpessoa/usdc-payments-sdk';
+
+// Configure webhook
+webhookManager.registerWebhook("merchant-backend", {
+  url: "https://api.merchant.com/webhooks/stellar-payments",
+  secret: "your-webhook-secret",
+  retryAttempts: 5,
+  timeout: 10000
+});
+
+// Use SDK normally - webhooks are sent automatically
+const session = await createPaymentSession({
+  amount: 50,
+  assetCode: "USDC",
+  issuer: "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL",
+  destination: "GDESTINATIONADDRESS...",
+  memo: "Order #123"
+});
+
+const result = await signAndSubmit(session.xdr, "S...SECRETKEY", session.id, session.request);
+```
+
+**Events:** `payment.created`, `payment.submitted`, `payment.confirmed`, `payment.failed`
+
+📖 **[Complete Webhook Documentation](docs/webhook-support.md)**
 
 ---
 
@@ -259,8 +293,8 @@ The included examples use testnet for development and testing. Always use testne
 - [x] Testnet integration
 - [x] Next.js example app
 
-### Phase 2 (Planned)
-- [ ] Backend webhook support
+### Phase 2 (In Progress)
+- [x] Backend webhook support ✅
 - [ ] SEP-24 on/off-ramp helpers
 - [ ] Payment confirmation flows
 - [ ] Error handling improvements
