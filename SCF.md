@@ -1,4 +1,4 @@
-S# USDC Payments SDK for Stellar (Web + Mobile)
+# USDC Payments SDK for Stellar (Web + Mobile)
 
 > **Disclaimer:** This is an independent community project, **not affiliated with or endorsed by** the Stellar Development Foundation. “Stellar” is used only to indicate protocol compatibility.
 
@@ -81,14 +81,29 @@ A **universal Payments SDK** that makes Stellar integration as simple as Stripe/
 ## Budget Requested
 **$120,000 (XLM/USDC equivalent)**
 
-| Category | Description | Amount |
-|-----------|-------------|---------|
-| Engineering | 4 devs, 5 months | $80,000 |
-| Infra & Testing | Servers, APIs, test devices | $10,000 |
-| Design, Docs, DevRel | UX, tutorials, community | $10,000 |
-| Compliance, Pilots & Contingency | Audits, partner pilots | $20,000 |
-| **Total** |  | **$120,000** |
+### Phase 1  $30,000
+- [ ] Core SDK with React component
+- [ ] Transaction builder and submitter
+- [ ] Freighter wallet integration
+- [ ] TypeScript support
+- [ ] Testnet integration
+- [ ] Next.js example app
 
+### Phase 2 $30,000
+- [ ] Backend webhook support 
+- [ ] SEP-24 on/off-ramp helpers
+- [ ] Payment confirmation flows
+- [ ] Error handling improvements
+
+### Phase 3 $30,000
+- [ ] React Native SDK
+- [ ] Mobile wallet adapters
+- [ ] Cross-platform examples
+
+### Phase 4 $30,000
+- [ ] Mainnet production release
+- [ ] Merchant pilot programs
+- [ ] Performance optimizations
 ---
 
 ## Team
