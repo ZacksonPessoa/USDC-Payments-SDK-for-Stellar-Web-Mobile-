@@ -1,3 +1,8 @@
+[![Release](https://img.shields.io/badge/release-v0.1.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.1.0-mvp)
+[![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
+
+
+
 # USDC Payments SDK for Stellar (Web + Mobile)
 
 **One-line checkout SDK to make paying with USDC on Stellar as easy as Stripe.**
