@@ -8,10 +8,6 @@ import {
   Account,            
 } from "stellar-sdk";
 import * as StellarSDK from "stellar-sdk";
-import { WebhookManager } from "./webhookManager";
-
-// Instância global do webhook manager
-const webhookManager = new WebhookManager();
 
 export async function createPaymentSession(req: PaymentRequest, sourcePublicKey?: string): Promise<PaymentSession> {
   if (!req.amount || !req.assetCode || !req.destination) {
@@ -63,11 +59,8 @@ export async function createPaymentSession(req: PaymentRequest, sourcePublicKey?
     xdr,                  
   };
 
-  // Emite evento webhook
-  await webhookManager.emitPaymentCreated(session);
+  // REMOVED: Insecure client-side webhook emission.
+  // Webhooks should be triggered by the backend after monitoring the blockchain.
 
   return session;
 }
-
-// Exporta o webhook manager para configuração
-export { webhookManager };

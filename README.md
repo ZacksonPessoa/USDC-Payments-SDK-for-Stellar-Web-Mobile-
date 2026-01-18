@@ -13,7 +13,7 @@
 - **`<PayWithUSDC />`** - Drop-in React component for instant checkout
 - **`createPaymentSession()`** - Build Stellar payment transactions
 - **`signAndSubmit()`** - Sign and submit transactions to Horizon
-- **`WebhookManager`** - Real-time payment notifications (NEW!)
+- **`PaymentMonitor`** - Secure Server-Side Payment Verification (NEW!)
 - **Wallet Integration** - Built-in Freighter wallet adapter
 - **TypeScript Support** - Full type safety and IntelliSense
 - **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
@@ -29,7 +29,9 @@
 npm install @zacksonpessoa/usdc-payments-sdk
 ```
 
-### Basic Usage
+### 1. Frontend: Collect Payment
+
+Use the `PayWithUSDC` component to initiate payment in your app.
 
 ```tsx
 import React from 'react';
@@ -44,58 +46,82 @@ function Checkout() {
       destination="GDESTINATIONADDRESS..."
       assetCode="USDC"
       issuer="GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL"
+      memo="ORDER_123" // Important for tracking!
       wallet={wallet}
-      onSuccess={(hash) => console.log('Payment confirmed:', hash)}
+      onSuccess={(hash) => console.log('Payment sent:', hash)}
       onError={(error) => console.error('Payment failed:', error)}
     />
   );
 }
 ```
 
-### XLM Payment (Native Asset)
+### 2. Backend: Verify Payment & Webhooks (Secure)
 
-```tsx
-<PayWithUSDC
-  amount={10}
-  destination="GDESTINATIONADDRESS..."
-  assetCode="XLM"
-  wallet={wallet}
-  onSuccess={(hash) => console.log('XLM sent:', hash)}
-/>
+**Critical:** Do not rely on frontend callbacks for confirmation. Use the Server-Side `PaymentMonitor`.
+
+```typescript
+import { PaymentMonitor } from '@zacksonpessoa/usdc-payments-sdk/server';
+
+// Initialize the monitor on your backend
+const monitor = new PaymentMonitor("TESTNET", "YOUR_MERCHANT_ADDRESS", {
+  url: "https://api.yoursite.com/webhooks/payment", // Internal or external webhook
+  secret: "YOUR_WEBHOOK_SECRET_KEY" // Used for HMAC-SHA256 signing
+}, {
+  timeoutMinutes: 15 // Stop monitoring payment after 15 minutes
+});
+
+// Register an expected payment (Intent)
+monitor.registerPayment("ORDER_123", {
+  amount: 50,
+  assetCode: "USDC",
+  issuer: "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL", // Required for USDC
+  destination: "YOUR_MERCHANT_ADDRESS"
+});
+
+// Start monitoring the blockchain
+monitor.start();
+```
+
+The monitor performs strict validations before confirming:
+1.  **Idempotency:** Ensures payments are confirmed only once per session ID.
+2.  **Destination:** Verifies funds arrived at the monitored account.
+3.  **Asset & Issuer:** Strictly checks `asset_code` and `asset_issuer` match the intent.
+4.  **Amount:** Verifies received amount is greater than or equal to requested amount.
+5.  **Timeout:** Automatically expires pending payments after the configured timeout (default: 15m).
+
+### 3. Verify Webhook Signature
+
+Your webhook endpoint must verify the `X-Signature` header to ensure the request is genuine.
+
+```typescript
+import { verifySignature } from '@zacksonpessoa/usdc-payments-sdk/server';
+
+app.post('/webhooks/payment', (req, res) => {
+  const signature = req.headers['x-signature'];
+  const payload = JSON.stringify(req.body);
+  const secret = "YOUR_WEBHOOK_SECRET_KEY";
+
+  if (!verifySignature(payload, signature, secret)) {
+    return res.status(401).send("Invalid Signature");
+  }
+
+  // Process payment confirmation safely...
+  console.log("Payment Confirmed:", req.body);
+  res.send("OK");
+});
 ```
 
 ---
 
-## 🔗 Webhook Support (NEW!)
+## 🔒 Security Improvements (Feb 2025)
 
-Get real-time notifications about payment events:
+This SDK has been updated to remove client-side webhooks.
+- **Removed:** `WebhookManager` in the client (browser).
+- **Added:** `PaymentMonitor` for Node.js (Server).
+- **Added:** HMAC-SHA256 signature verification.
+- **Added:** Server-side hardening (Amount/Asset/Destination validation).
 
-```typescript
-import { webhookManager, createPaymentSession, signAndSubmit } from '@zacksonpessoa/usdc-payments-sdk';
-
-// Configure webhook
-webhookManager.registerWebhook("merchant-backend", {
-  url: "https://api.merchant.com/webhooks/stellar-payments",
-  secret: "your-webhook-secret",
-  retryAttempts: 5,
-  timeout: 10000
-});
-
-// Use SDK normally - webhooks are sent automatically
-const session = await createPaymentSession({
-  amount: 50,
-  assetCode: "USDC",
-  issuer: "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL",
-  destination: "GDESTINATIONADDRESS...",
-  memo: "Order #123"
-});
-
-const result = await signAndSubmit(session.xdr, "S...SECRETKEY", session.id, session.request);
-```
-
-**Events:** `payment.created`, `payment.submitted`, `payment.confirmed`, `payment.failed`
-
-📖 **[Complete Webhook Documentation](docs/webhook-support.md)**
+**Why?** Client-side webhooks can be spoofed by malicious users. Confirmation must always happen on a trusted server by observing the blockchain directly.
 
 ---
 
@@ -110,248 +136,46 @@ const result = await signAndSubmit(session.xdr, "S...SECRETKEY", session.id, ses
 | `wallet` | `WalletAdapter` | ✅ | Wallet implementation |
 | `assetCode` | `string` | ❌ | Asset code (default: "XLM") |
 | `issuer` | `string` | ❌ | Asset issuer (required for non-native assets) |
-| `memo` | `string` | ❌ | Transaction memo |
+| `memo` | `string` | ❌ | Transaction memo (ID) |
 | `network` | `"TESTNET" \| "PUBLIC"` | ❌ | Network (default: "TESTNET") |
 | `source` | `string` | ❌ | Source address (optional) |
 | `label` | `string` | ❌ | Button label (default: "Pay") |
-| `onSuccess` | `(hash: string) => void` | ❌ | Success callback |
+| `onSuccess` | `(hash: string) => void` | ❌ | Success callback (UI only) |
 | `onError` | `(error: unknown) => void` | ❌ | Error callback |
 
-### Core Functions
+### Server Modules (`@zacksonpessoa/usdc-payments-sdk/server`)
 
-#### `createPaymentSession(request, sourcePublicKey?)`
+#### `PaymentMonitor`
+Monitors an account for specific incoming payments.
 
-Creates a Stellar payment transaction session.
-
-```typescript
-import { createPaymentSession } from '@zacksonpessoa/usdc-payments-sdk';
-
-const session = await createPaymentSession({
-  amount: 50,
-  assetCode: "USDC",
-  issuer: "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL",
-  destination: "GDESTINATIONADDRESS...",
-  memo: "Payment for order #123"
-}, "GSOURCEADDRESS...");
-```
-
-#### `signAndSubmit(xdr, secretKey)`
-
-Signs and submits a transaction to Stellar Horizon.
-
-```typescript
-import { signAndSubmit } from '@zacksonpessoa/usdc-payments-sdk';
-
-const result = await signAndSubmit(session.xdr, "S...SECRETKEY");
-console.log('Transaction hash:', result.hash);
-```
-
-### Wallet Adapter Interface
-
-```typescript
-interface WalletAdapter {
-  getPublicKey(): Promise<string>;
-  signAndSubmit(xdr: string, network: NetworkName): Promise<{ hash: string }>;
-}
-```
+#### `generateSignature(payload, secret)` / `verifySignature(payload, signature, secret)`
+Crypto helpers for secure webhook communication.
 
 ---
 
 ## 🧪 Examples
 
-### Next.js Demo
+### Secure Server Example
 
-A complete working example is included:
-
-```bash
-cd examples
-npm install
-npm run dev
-```
-
-Visit [http://localhost:3000](http://localhost:3000) to see the demo.
-
-### Sandbox Testing
-
-Test the SDK functionality with the included sandbox:
+See [examples/secure-server-example.mjs](examples/secure-server-example.mjs) for a complete simulation of the payment flow.
 
 ```bash
 npm run build
-node sandbox.mjs
+node examples/secure-server-example.mjs
 ```
-
-This will:
-1. Create a testnet account
-2. Fund it via Friendbot
-3. Create a payment session
-4. Sign and submit a transaction
-5. Demonstrate component usage
-
----
-
-## 🛠️ Development
-
-### Project Structure
-
-```
-src/
-├── components/
-│   └── PayWithUSDC.tsx      # Main React component
-├── core/
-│   ├── createPaymentSession.ts  # Transaction builder
-│   ├── signAndSubmit.ts         # Transaction submitter
-│   └── freighterAdapter.ts      # Freighter wallet adapter
-├── types.ts                     # TypeScript definitions
-└── index.ts                     # Main exports
-```
-
-### Build Commands
-
-```bash
-# Development build with watch
-npm run dev
-
-# Production build
-npm run build
-
-# Clean build artifacts
-npm run clean
-```
-
-### Tech Stack
-
-- **Language:** TypeScript 5.9+
-- **Frontend:** React 19
-- **Blockchain:** Stellar SDK 13.3.0
-- **Build:** tsup (ESM + CJS + DTS)
-- **Testing:** Node.js sandbox + Next.js example
 
 ---
 
 ## 🔧 Configuration
 
-### TypeScript
-
-The SDK is fully typed. Import types as needed:
-
-```typescript
-import type { 
-  PaymentRequest, 
-  PaymentSession, 
-  WalletAdapter, 
-  NetworkName 
-} from '@zacksonpessoa/usdc-payments-sdk';
-```
-
 ### Build Configuration
 
-The SDK builds to multiple formats:
-- **ESM** (`dist/index.js`) - Modern bundlers
-- **CJS** (`dist/index.cjs`) - Node.js/legacy bundlers  
-- **DTS** (`dist/index.d.ts`) - TypeScript definitions
-
----
-
-## 🌐 Network Support
-
-### Testnet (Default)
-- **Horizon:** `https://horizon-testnet.stellar.org`
-- **Friendbot:** `https://friendbot.stellar.org`
-- **Network Passphrase:** Testnet
-
-### Mainnet (Production)
-- **Horizon:** `https://horizon.stellar.org`
-- **Network Passphrase:** Public
-
----
-
-## 🔒 Security
-
-### Production Considerations
-
-⚠️ **Never expose private keys in production apps!**
-
-The SDK is designed to work with wallet integrations:
-
-- **Freighter** - Browser extension wallet
-- **Wallet SDK** - Mobile wallet integration
-- **Custom adapters** - Implement `WalletAdapter` interface
-
-### Testnet Usage
-
-The included examples use testnet for development and testing. Always use testnet during development.
-
----
-
-## 📅 Roadmap
-
-### Phase 1 ✅ (Current)
-- [x] Core SDK with React component
-- [x] Transaction builder and submitter
-- [x] Freighter wallet integration
-- [x] TypeScript support
-- [x] Testnet integration
-- [x] Next.js example app
-
-### Phase 2 (In Progress)
-- [x] Backend webhook support ✅
-- [ ] SEP-24 on/off-ramp helpers
-- [ ] Payment confirmation flows
-- [ ] Error handling improvements
-
-### Phase 3 (Planned)
-- [ ] React Native SDK
-- [ ] Mobile wallet adapters
-- [ ] Cross-platform examples
-
-### Phase 4 (Planned)
-- [ ] Mainnet production release
-- [ ] Merchant pilot programs
-- [ ] Performance optimizations
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-### Development Setup
-
-```bash
-git clone https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-
-cd USDC-Payments-SDK-for-Stellar-Web-Mobile-
-npm install
-npm run dev
-```
+The SDK builds to:
+- **Client:** `dist/index.js` (Browser/React)
+- **Server:** `dist/server.js` (Node.js)
 
 ---
 
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Stellar Development Foundation** - For the amazing blockchain platform
-- **Stellar Community** - For feedback and support
-- **Open Source Contributors** - For making this possible
-
----
-
-## 📞 Support
-
-- **Issues:** [GitHub Issues](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/discussions)
-- **Documentation:** [docs/](docs/)
-
----
-
-**Made with ❤️ for the Stellar ecosystem**

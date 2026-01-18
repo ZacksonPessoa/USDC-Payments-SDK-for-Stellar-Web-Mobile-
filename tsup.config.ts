@@ -1,14 +1,21 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts"],       // ponto de entrada único
-  format: ["esm", "cjs"],        // gera ESM + CJS
-  dts: true,                     // gera declarações .d.ts
-  sourcemap: true,               // gera mapa de origem (útil p/ debug)
-  clean: true,                   // limpa dist antes do build
-  minify: false,                 // não minifica (melhor p/ dev)
-  target: "es2020",              // compatível com nosso tsconfig
-  skipNodeModulesBundle: true,   // não embute dependências externas
-  splitting: false,              // bundle único
-  external: ["react", "react-dom"], // React deve ser externo
+  entry: {
+    index: "src/index.ts",
+    server: "src/server/index.ts"
+  },
+  format: ["esm", "cjs"],
+  dts: true,
+  sourcemap: true,
+  clean: true,
+  minify: false,
+  target: "node18", // Changed to node18 for better server support, though client might need lower.
+                    // Actually, tsup can target neutral.
+                    // But since we are splitting, we might want different targets?
+                    // For now, keep it simple. es2020 is fine for both usually.
+  platform: "neutral", // Allow node and browser
+  skipNodeModulesBundle: true,
+  splitting: false,
+  external: ["react", "react-dom"],
 });

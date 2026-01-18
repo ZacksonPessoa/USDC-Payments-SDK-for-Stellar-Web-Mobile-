@@ -12,8 +12,6 @@
   "bugs": {
     "url": "https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/issues"
   },
-
-  
   "types": "./dist/index.d.ts",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,27 +19,31 @@
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
     }
   },
-
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
-
   "scripts": {
-    "build": "tsup src/index.ts --dts --format esm,cjs --sourcemap",
-    "dev": "tsup src/index.ts --dts --format esm,cjs --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "prepare": "npm run build",
     "test": "echo \"(sem testes ainda)\"",
-    "test:webhook": "npm run build && node examples/webhook-example.mjs"
+    "test:webhook": "npm run build && node examples/secure-server-example.mjs"
   },
-
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "stellar-sdk": "^13.3.0"
   },
   "devDependencies": {
+    "@types/node": "25.0.9",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "tsup": "^8.5.0",
