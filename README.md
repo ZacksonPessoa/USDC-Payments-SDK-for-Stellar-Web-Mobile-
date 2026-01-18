@@ -66,12 +66,15 @@ import { PaymentMonitor } from '@zacksonpessoa/usdc-payments-sdk/server';
 const monitor = new PaymentMonitor("TESTNET", "YOUR_MERCHANT_ADDRESS", {
   url: "https://api.yoursite.com/webhooks/payment", // Internal or external webhook
   secret: "YOUR_WEBHOOK_SECRET_KEY" // Used for HMAC-SHA256 signing
+}, {
+  timeoutMinutes: 15 // Stop monitoring payment after 15 minutes
 });
 
 // Register an expected payment (Intent)
 monitor.registerPayment("ORDER_123", {
   amount: 50,
   assetCode: "USDC",
+  issuer: "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL", // Required for USDC
   destination: "YOUR_MERCHANT_ADDRESS"
 });
 
@@ -79,7 +82,12 @@ monitor.registerPayment("ORDER_123", {
 monitor.start();
 ```
 
-The monitor will poll the blockchain, detect the transaction with Memo `ORDER_123`, verify the amount/asset, and send a signed webhook to your URL.
+The monitor performs strict validations before confirming:
+1.  **Idempotency:** Ensures payments are confirmed only once per session ID.
+2.  **Destination:** Verifies funds arrived at the monitored account.
+3.  **Asset & Issuer:** Strictly checks `asset_code` and `asset_issuer` match the intent.
+4.  **Amount:** Verifies received amount is greater than or equal to requested amount.
+5.  **Timeout:** Automatically expires pending payments after the configured timeout (default: 15m).
 
 ### 3. Verify Webhook Signature
 
@@ -111,6 +119,7 @@ This SDK has been updated to remove client-side webhooks.
 - **Removed:** `WebhookManager` in the client (browser).
 - **Added:** `PaymentMonitor` for Node.js (Server).
 - **Added:** HMAC-SHA256 signature verification.
+- **Added:** Server-side hardening (Amount/Asset/Destination validation).
 
 **Why?** Client-side webhooks can be spoofed by malicious users. Confirmation must always happen on a trusted server by observing the blockchain directly.
 

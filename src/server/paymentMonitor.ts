@@ -1,5 +1,5 @@
 import * as StellarSDK from "stellar-sdk";
-import type { PaymentRequest, WebhookConfig, WebhookEventType } from "../types/webhook";
+import type { PaymentRequest, WebhookConfig } from "../types/webhook";
 import { WebhookSender } from "./webhookSender";
 
 type MonitoredPayment = {
@@ -7,6 +7,11 @@ type MonitoredPayment = {
   request: PaymentRequest;
   status: "pending" | "confirmed" | "failed";
   createdAt: number;
+  expiresAt: number;
+};
+
+type MonitorOptions = {
+  timeoutMinutes?: number; // Default 15
 };
 
 export class PaymentMonitor {
@@ -17,15 +22,18 @@ export class PaymentMonitor {
   private processedHashes: Set<string> = new Set();
   private isPolling = false;
   private network: "TESTNET" | "PUBLIC";
+  private timeoutMs: number;
 
   constructor(
     network: "TESTNET" | "PUBLIC",
     monitoredAccount: string,
-    webhookConfig: WebhookConfig
+    webhookConfig: WebhookConfig,
+    options: MonitorOptions = {}
   ) {
     this.network = network;
     this.monitoredAccount = monitoredAccount;
     this.webhookSender = new WebhookSender(webhookConfig);
+    this.timeoutMs = (options.timeoutMinutes || 15) * 60 * 1000;
 
     const horizonUrl = network === "TESTNET"
       ? "https://horizon-testnet.stellar.org"
@@ -38,11 +46,14 @@ export class PaymentMonitor {
    * In a real app, you would save this to a database.
    */
   registerPayment(sessionId: string, request: PaymentRequest) {
+    if (!sessionId) throw new Error("Session ID is required");
+
     this.pendingPayments.set(sessionId, {
       id: sessionId,
       request,
       status: "pending",
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      expiresAt: Date.now() + this.timeoutMs
     });
     console.log(`[PaymentMonitor] Monitoring payment ${sessionId} for ${request.amount} ${request.assetCode}`);
   }
@@ -60,9 +71,9 @@ export class PaymentMonitor {
 
     while (this.isPolling) {
       try {
+        this.cleanupExpiredPayments();
         await this.checkTransactions(cursor);
         // In a real implementation, you would update the cursor properly based on the last tx.
-        // For simplicity here, we just check recent transactions.
       } catch (e) {
         console.error("[PaymentMonitor] Error checking transactions:", e);
       }
@@ -74,21 +85,40 @@ export class PaymentMonitor {
     this.isPolling = false;
   }
 
+  private cleanupExpiredPayments() {
+    const now = Date.now();
+    for (const [id, payment] of this.pendingPayments.entries()) {
+      if (now > payment.expiresAt) {
+        console.log(`[PaymentMonitor] Payment expired: ${id}`);
+        this.pendingPayments.delete(id);
+      }
+    }
+  }
+
   private async checkTransactions(cursor: string) {
     // Fetch recent payments for the account
     const payments = await this.server.payments()
       .forAccount(this.monitoredAccount)
-      .limit(10)
+      .limit(20)
       .order("desc")
       .call();
 
     for (const record of payments.records) {
+      // Basic type filtering
       if (record.type !== "payment" && record.type !== "path_payment_strict_send" && record.type !== "path_payment_strict_receive") {
         continue;
       }
 
       const txHash = record.transaction_hash;
+
+      // Idempotency Check 1: Already processed this transaction hash?
       if (this.processedHashes.has(txHash)) continue;
+
+      // 1. Validate Destination
+      // The 'to' field in payment records usually indicates the destination.
+      // However, for path payments, we need to be careful.
+      // record.to should be the monitored account.
+      if (record.to !== this.monitoredAccount) continue;
 
       // Need to fetch transaction to get the Memo
       const tx = await record.transaction();
@@ -96,9 +126,6 @@ export class PaymentMonitor {
       const memoValue = tx.memo;
 
       // Check if this memo matches any pending payment
-      // Note: Memo in SDK might be text or id.
-      // We assume sessionId matches the memo text.
-
       if (memoValue && this.pendingPayments.has(memoValue)) {
         await this.confirmPayment(memoValue, txHash, record);
         this.processedHashes.add(txHash);
@@ -109,21 +136,31 @@ export class PaymentMonitor {
   private async confirmPayment(sessionId: string, txHash: string, paymentRecord: any) {
     const payment = this.pendingPayments.get(sessionId)!;
 
-    // Validate Amount and Asset
-    // Note: paymentRecord from Horizon has 'amount', 'asset_type', 'asset_code', 'asset_issuer'
+    // Idempotency Check 2: Already confirmed? (Should be handled by map removal, but double check)
+    if (payment.status === "confirmed") return;
 
-    // Simple validation logic (should be more robust in production)
+    // 2. Validate Asset
     const isNative = paymentRecord.asset_type === "native";
     const recordAssetCode = isNative ? "XLM" : paymentRecord.asset_code;
     const recordIssuer = isNative ? undefined : paymentRecord.asset_issuer;
 
     if (recordAssetCode !== payment.request.assetCode) {
-      console.warn(`[PaymentMonitor] Asset mismatch for ${sessionId}`);
+      console.warn(`[PaymentMonitor] Asset mismatch for ${sessionId}. Expected ${payment.request.assetCode}, got ${recordAssetCode}`);
       return;
     }
 
-    if (parseFloat(paymentRecord.amount) < payment.request.amount) {
-      console.warn(`[PaymentMonitor] Insufficient amount for ${sessionId}`);
+    // 3. Validate Issuer (Strict check for non-native assets)
+    if (!isNative && payment.request.issuer && recordIssuer !== payment.request.issuer) {
+      console.warn(`[PaymentMonitor] Issuer mismatch for ${sessionId}. Expected ${payment.request.issuer}, got ${recordIssuer}`);
+      return;
+    }
+
+    // 4. Validate Amount (Amount Received >= Amount Requested)
+    const receivedAmount = parseFloat(paymentRecord.amount);
+    const requestedAmount = payment.request.amount;
+
+    if (receivedAmount < requestedAmount) {
+      console.warn(`[PaymentMonitor] Insufficient amount for ${sessionId}. Expected ${requestedAmount}, got ${receivedAmount}`);
       return;
     }
 
@@ -143,7 +180,8 @@ export class PaymentMonitor {
       transactionHash: txHash,
       metadata: {
         sender: paymentRecord.from,
-        amount: paymentRecord.amount
+        amount: paymentRecord.amount,
+        asset: recordAssetCode
       }
     });
   }
