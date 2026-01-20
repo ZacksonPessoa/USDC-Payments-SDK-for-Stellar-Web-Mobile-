@@ -1,255 +1,158 @@
-# 🔗 Webhook Support - USDC Payments SDK
+# 🔗 Webhook Support & Server Verification
 
-O sistema de webhooks permite que aplicações backend recebam notificações automáticas sobre eventos de pagamento em tempo real.
+The USDC Payments SDK uses a **Server-Side Verification** model. This ensures that payment confirmations are secure, trusted, and cannot be spoofed by malicious clients.
 
-## 🎯 Funcionalidades
+> **⚠️ Security Note:** Client-side callbacks (`onSuccess` in the React component) indicate only that a transaction was *submitted*. Never trust the client for payment confirmation. Always verify on the server.
 
-- **Notificações Automáticas**: Eventos HTTP enviados para URLs configuradas
-- **Retry Automático**: Tentativas de reenvio com backoff exponencial
-- **Assinatura HMAC**: Validação de integridade dos webhooks
-- **Processamento Assíncrono**: Não bloqueia o fluxo principal
-- **Múltiplos Webhooks**: Suporte a vários endpoints simultaneamente
+---
 
-## 📋 Eventos Suportados
+## 🏗️ Architecture
 
-| Evento | Descrição | Quando é Emitido |
-|--------|-----------|------------------|
-| `payment.created` | Sessão de pagamento criada | Quando `createPaymentSession()` é chamado |
-| `payment.submitted` | Transação enviada para Horizon | Quando `signAndSubmit()` envia a transação |
-| `payment.confirmed` | Transação confirmada na blockchain | Quando Horizon confirma a transação |
-| `payment.failed` | Transação falhou | Quando ocorre erro na transação |
-| `payment.expired` | Sessão expirou | Quando uma sessão expira (futuro) |
+Instead of the browser sending webhooks (which is insecure), you run a **Payment Monitor** on your backend (or as a separate microservice).
 
-## 🚀 Uso Básico
+1. **Frontend:** User signs and submits transaction.
+2. **Blockchain:** Transaction is processed and included in a ledger.
+3. **PaymentMonitor (Server):** Detects the confirmed transaction via Stellar Horizon.
+4. **Webhook:** `PaymentMonitor` sends a signed HTTP request to your main backend.
 
-### 1. Configurar Webhook
+```mermaid
+sequenceDiagram
+    participant Client as Frontend (User)
+    participant Horizon as Stellar Network
+    participant Monitor as PaymentMonitor (Node.js)
+    participant Backend as Merchant Backend
 
-```typescript
-import { webhookManager } from '@zacksonpessoa/usdc-payments-sdk';
+    Client->>Horizon: Submit Transaction
+    Horizon-->>Client: 200 OK (Submitted)
 
-// Registrar webhook
-webhookManager.registerWebhook("merchant-backend", {
-  url: "https://api.merchant.com/webhooks/stellar-payments",
-  secret: "your-webhook-secret",
-  retryAttempts: 5,
-  timeout: 10000
-});
+    loop Polling
+        Monitor->>Horizon: Check Account History
+        Horizon-->>Monitor: New Transactions
+    end
+
+    Monitor->>Monitor: Validate (Amount, Asset, Destination)
+    Monitor->>Backend: POST /webhook (Signed)
+    Backend->>Backend: Verify Signature & Fulfill Order
+    Backend-->>Monitor: 200 OK
 ```
 
-### 2. Usar SDK Normalmente
+---
+
+## 🚀 Setting Up the Payment Monitor
+
+The `PaymentMonitor` class is available in the server module of the SDK.
+
+### 1. Initialize the Monitor
 
 ```typescript
-import { createPaymentSession, signAndSubmit } from '@zacksonpessoa/usdc-payments-sdk';
+import { PaymentMonitor } from '@zacksonpessoa/usdc-payments-sdk/server';
 
-// Criar sessão (emite payment.created)
-const session = await createPaymentSession({
+const monitor = new PaymentMonitor(
+  "TESTNET",                      // Network ("TESTNET" or "PUBLIC")
+  "G_MERCHANT_WALLET_ADDRESS",    // The account receiving funds
+  {
+    url: "https://api.yoursite.com/webhooks/payment", // Your webhook endpoint
+    secret: "whsec_..."           // Secret for HMAC signing
+  },
+  {
+    timeoutMinutes: 15            // Stop tracking a payment after 15 mins
+  }
+);
+
+// Start polling
+monitor.start();
+```
+
+### 2. Register Payment Intents
+
+When your user initiates a checkout flow, register the expected payment on your server. This tells the monitor what to look for.
+
+```typescript
+// Example: Inside your "Create Order" API route
+const sessionId = "order_123_abc";
+
+monitor.registerPayment(sessionId, {
   amount: 50,
   assetCode: "USDC",
   issuer: "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL",
-  destination: "GDESTINATIONADDRESS...",
-  memo: "Order #123"
+  destination: "G_MERCHANT_WALLET_ADDRESS",
+  memo: sessionId // The memo must match the session ID/Order ID
 });
-
-// Enviar transação (emite payment.submitted e payment.confirmed)
-const result = await signAndSubmit(
-  session.xdr, 
-  "S...SECRETKEY",
-  session.id,
-  session.request
-);
 ```
 
-## 📨 Formato do Payload
+---
+
+## 📨 Webhook Payload
+
+When a payment is confirmed, the monitor sends a POST request with the following JSON body:
 
 ```json
 {
-  "id": "evt_1703123456789_abc123def",
+  "id": "evt_1703123456789",
   "type": "payment.confirmed",
   "timestamp": "2023-12-21T10:30:45.123Z",
-  "sessionId": "session-1703123456789",
+  "sessionId": "order_123_abc",
   "transactionHash": "abc123def456...",
   "paymentRequest": {
     "amount": 50,
     "assetCode": "USDC",
-    "issuer": "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL",
-    "destination": "GDESTINATIONADDRESS...",
-    "memo": "Order #123"
+    "issuer": "GADGV...",
+    "destination": "G_MERCHANT...",
+    "memo": "order_123_abc"
   },
   "metadata": {
-    "confirmedAt": "2023-12-21T10:30:45.123Z"
+    "sender": "G_USER_WALLET...",
+    "amount": "50.0000000",
+    "asset": "USDC"
   }
 }
 ```
-
-## 🔒 Segurança
-
-### Assinatura HMAC
-
-O SDK inclui assinatura HMAC para validar a integridade dos webhooks:
-
-```typescript
-// Configurar secret
-webhookManager.registerWebhook("secure-webhook", {
-  url: "https://api.merchant.com/webhooks",
-  secret: "your-secret-key"
-});
-```
-
-### Validação no Backend
-
-```javascript
-// Exemplo de validação em Node.js
-const crypto = require('crypto');
-
-function validateWebhookSignature(payload, signature, secret) {
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest('hex');
-  
-  return signature === `sha256=${expectedSignature}`;
-}
-```
-
-## 🛠️ Configuração Avançada
-
-### Múltiplos Webhooks
-
-```typescript
-// Webhook para auditoria
-webhookManager.registerWebhook("audit-log", {
-  url: "https://audit.example.com/webhooks",
-  secret: "audit-secret"
-});
-
-// Webhook para notificações
-webhookManager.registerWebhook("notifications", {
-  url: "https://notifications.example.com/webhooks",
-  secret: "notification-secret"
-});
-```
-
-### Configurações Personalizadas
-
-```typescript
-webhookManager.registerWebhook("custom-webhook", {
-  url: "https://api.example.com/webhooks",
-  secret: "custom-secret",
-  retryAttempts: 10,    // 10 tentativas
-  timeout: 30000         // 30 segundos de timeout
-});
-```
-
-## 📊 Monitoramento
-
-### Estatísticas
-
-```typescript
-const stats = webhookManager.getStats();
-console.log("Webhooks registrados:", stats.registeredWebhooks);
-console.log("Eventos na fila:", stats.queuedEvents);
-```
-
-### Logs de Debug
-
-```typescript
-// Os webhooks incluem logs automáticos
-console.log("Webhook delivery failed:", error);
-```
-
-## 🧪 Testando
-
-### Exemplo Completo
-
-```bash
-npm run test:webhook
-```
-
-### Servidor de Teste
-
-Use ferramentas como [webhook.site](https://webhook.site) para testar:
-
-```typescript
-webhookManager.registerWebhook("test-webhook", {
-  url: "https://webhook.site/your-unique-url",
-  secret: "test-secret"
-});
-```
-
-## 🔧 Implementação no Backend
-
-### Express.js
-
-```javascript
-const express = require('express');
-const crypto = require('crypto');
-const app = express();
-
-app.use(express.json());
-
-app.post('/webhooks/stellar-payments', (req, res) => {
-  const signature = req.headers['x-webhook-signature'];
-  const payload = JSON.stringify(req.body);
-  
-  // Validar assinatura
-  if (!validateWebhookSignature(payload, signature, process.env.WEBHOOK_SECRET)) {
-    return res.status(401).send('Invalid signature');
-  }
-  
-  const { type, sessionId, paymentRequest, transactionHash } = req.body;
-  
-  switch (type) {
-    case 'payment.created':
-      console.log('Payment session created:', sessionId);
-      break;
-    case 'payment.submitted':
-      console.log('Payment submitted:', transactionHash);
-      break;
-    case 'payment.confirmed':
-      console.log('Payment confirmed:', transactionHash);
-      // Atualizar status do pedido
-      updateOrderStatus(paymentRequest.memo, 'paid');
-      break;
-    case 'payment.failed':
-      console.log('Payment failed:', req.body.metadata.error);
-      break;
-  }
-  
-  res.status(200).send('OK');
-});
-```
-
-## 🚨 Tratamento de Erros
-
-### Retry Automático
-
-O SDK automaticamente:
-- Tenta reenviar webhooks que falharam
-- Usa backoff exponencial (1s, 2s, 4s, 8s...)
-- Para após o número máximo de tentativas
-
-### Logs de Erro
-
-```typescript
-// Erros são automaticamente logados
-console.error("Webhook delivery failed:", error);
-```
-
-## 📈 Performance
-
-- **Processamento Assíncrono**: Webhooks não bloqueiam transações
-- **Fila de Eventos**: Eventos são processados em background
-- **Retry Inteligente**: Evita spam de tentativas
-- **Timeout Configurável**: Evita travamentos
-
-## 🔮 Roadmap
-
-- [ ] Webhook para `payment.expired`
-- [ ] Filtros de eventos por tipo
-- [ ] Métricas de entrega
-- [ ] Dashboard de monitoramento
-- [ ] Webhook para eventos de carteira
 
 ---
 
-**O sistema de webhooks está totalmente integrado ao SDK e pronto para uso em produção!** 🚀
+## 🔒 Verifying Signatures
+
+To ensure the webhook actually came from your trusted monitor (and not an attacker), verify the `X-Signature` header.
+
+### Node.js (Express) Example
+
+```typescript
+import { verifySignature } from '@zacksonpessoa/usdc-payments-sdk/server';
+
+app.post('/webhooks/payment', (req, res) => {
+  const signature = req.headers['x-signature'];
+  const payload = JSON.stringify(req.body); // Raw body string
+  const secret = process.env.WEBHOOK_SECRET;
+
+  if (!verifySignature(payload, signature, secret)) {
+    console.error("Invalid signature attempt");
+    return res.status(401).send("Unauthorized");
+  }
+
+  // Signature is valid. Process the order.
+  const { sessionId, transactionHash } = req.body;
+  console.log(`Order ${sessionId} paid via ${transactionHash}`);
+  
+  res.status(200).send("OK");
+});
+```
+
+---
+
+## 🛡️ Security Features
+
+The `PaymentMonitor` enforces strict security rules before firing a webhook:
+
+1.  **Destination Check:** Funds must have arrived at the specific monitored address.
+2.  **Asset Validation:** Checks `asset_code` and `asset_issuer` exactly match the registered intent (prevents fake token scams).
+3.  **Amount Validation:** Checks `received_amount >= requested_amount` (prevents underpayment).
+4.  **Idempotency:** A transaction hash is processed only once per running instance.
+5.  **Expiration:** Unpaid intents expire after the configured timeout (default 15 mins).
+
+---
+
+## 🔮 Roadmap
+
+- [ ] Persistent storage for `PaymentMonitor` (currently in-memory).
+- [ ] Support for Websockets for real-time frontend updates.
+- [ ] Support for multiple monitored accounts.
