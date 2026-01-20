@@ -168,6 +168,16 @@ This SDK has been updated to remove client-side webhooks.
 | `onSuccess` | `(hash: string) => void` | ❌ | Success callback (UI only) |
 | `onError` | `(error: unknown) => void` | ❌ | Error callback |
 
+> ⚠️ **Important – Payment Confirmation**
+>
+> The `onSuccess` callback indicates that the transaction was **successfully signed and submitted** to the Stellar network.
+> It does **not** mean the payment is confirmed or settled.
+>
+> Payment confirmation is performed **exclusively server-side**, based on **on-chain verification** by monitoring the Stellar network (Horizon).
+>
+> Merchants must rely on the backend verification flow (e.g. `PaymentMonitor` + webhooks) to determine when a payment is actually confirmed.
+
+
 ### Server Modules (`@zacksonpessoa/usdc-payments-sdk/server`)
 
 #### `PaymentMonitor`
