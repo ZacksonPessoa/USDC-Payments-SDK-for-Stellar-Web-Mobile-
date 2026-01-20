@@ -26,6 +26,26 @@
 
 ---
 
+## 🔒 Security Model (MVP)
+
+This SDK follows a **server-side trust model**.
+
+The client (web or mobile) is **never trusted** to confirm payments.
+
+All payment confirmations are performed **server-side**, based on **on-chain verification** by monitoring the Stellar network (Horizon).
+
+### Enforced Guarantees (v0.1.0-mvp)
+- Client-side payment confirmations are not accepted
+- Payments are confirmed only after on-chain verification
+- Destination address, asset code, and asset issuer are validated
+- Received amount must be greater than or equal to the requested amount
+- Idempotency prevents duplicate confirmations
+- Pending payment intents expire automatically (default: 15 minutes)
+- Merchant webhooks are sent server-to-server and signed with HMAC-SHA256
+
+For a complete security description and vulnerability reporting guidelines, see [`SECURITY.md`](./SECURITY.md).
+
+
 ## 🚀 Quick Start
 
 ### Installation
