@@ -7,9 +7,30 @@ import {
 import type { PaymentRequest } from "../types";
 import * as StellarSDK from "stellar-sdk";
 
-// Mock Stellar SDK Horizon Server
+// Mock Stellar SDK
 vi.mock("stellar-sdk", async () => {
   const actual = await vi.importActual("stellar-sdk");
+  
+  // Mock Operation.payment
+  const mockPaymentOperation = {
+    type: "payment",
+    destination: "",
+    asset: null,
+    amount: "",
+  };
+
+  // Mock Transaction with toXDR method
+  const mockTransaction = {
+    toXDR: vi.fn().mockReturnValue("AAAAAgAAAABiXz1Zw/ieZ1qM2FvAvKmH2R5zu3tqjLpagnrn8r5GQwAAAGQAAAAAAAAAAQAAAAEAAAAAXh3LgAAAAAAAAAAA"),
+  };
+
+  // Mock TransactionBuilder
+  const mockTransactionBuilder = {
+    addOperation: vi.fn().mockReturnThis(),
+    setTimeout: vi.fn().mockReturnThis(),
+    build: vi.fn().mockReturnValue(mockTransaction),
+  };
+
   return {
     ...actual,
     Horizon: {
@@ -20,6 +41,37 @@ vi.mock("stellar-sdk", async () => {
         }),
       })),
     },
+    Operation: {
+      ...actual.Operation,
+      payment: vi.fn().mockReturnValue(mockPaymentOperation),
+    },
+    TransactionBuilder: vi.fn().mockImplementation(() => mockTransactionBuilder),
+    Asset: Object.assign(
+      vi.fn().mockImplementation((code, issuer) => {
+        if (code === "XLM" || !issuer) {
+          return { code: "XLM", issuer: undefined, isNative: () => true };
+        }
+        return { code, issuer, isNative: () => false };
+      }),
+      {
+        native: vi.fn().mockReturnValue({ 
+          code: "XLM", 
+          issuer: undefined, 
+          isNative: () => true 
+        }),
+      }
+    ),
+    Keypair: {
+      ...actual.Keypair,
+      random: vi.fn().mockReturnValue({
+        publicKey: () => "GRANDOMKEY1234567890123456789012345678901234567890123456",
+      }),
+    },
+    Account: vi.fn().mockImplementation((publicKey, sequence) => ({
+      accountId: () => publicKey,
+      sequenceNumber: () => sequence,
+    })),
+    Networks: actual.Networks,
   };
 });
 

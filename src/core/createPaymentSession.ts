@@ -20,7 +20,7 @@ export async function createPaymentSession(
   network: NetworkName = "TESTNET"
 ): Promise<PaymentSession> {
   // Validation
-  if (!req.amount || !req.assetCode || !req.destination) {
+  if (req.amount === undefined || req.amount === null || !req.assetCode || !req.destination) {
     throw new InvalidPaymentRequestError(
       "PaymentRequest must include amount, assetCode, and destination"
     );

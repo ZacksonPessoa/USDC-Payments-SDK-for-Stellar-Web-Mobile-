@@ -240,9 +240,10 @@ The SDK builds to:
 - [x] **Payment confirmation flows** ✅ - PaymentStatusTracker and status tracking implemented
 - [x] **Error handling improvements** ✅ - Custom error classes and improved error handling
 - [x] **Retry logic** ✅ - Automatic retry with exponential backoff for transactions
-- [x] **Unit tests** ✅ - Test suite configured with Vitest (tests for core functions)
+- [x] **Unit tests** ✅ - Test suite configured with Vitest (all 36 tests passing)
 - [x] **PaymentMonitor tests** ✅ - Tests for PaymentMonitor and WebhookSender implemented
 - [x] **PaymentMonitor error handling** ✅ - Improved error handling with custom error classes
+- [x] **Test mocking** ✅ - Complete mocks for Stellar SDK (Operation, TransactionBuilder, etc.)
 
 ### 📋 Phase 3 - Mobile Support (PLANNED)
 
