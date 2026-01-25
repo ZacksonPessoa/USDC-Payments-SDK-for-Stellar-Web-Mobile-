@@ -18,11 +18,16 @@
 - **`<PayWithUSDC />`** - Drop-in React component for instant checkout
 - **`createPaymentSession()`** - Build Stellar payment transactions
 - **`signAndSubmit()`** - Sign and submit transactions to Horizon
-- **`PaymentMonitor`** - Secure Server-Side Payment Verification (NEW!)
+- **`PaymentMonitor`** - Secure Server-Side Payment Verification
+- **`PaymentStatusTracker`** - Track payment status through the entire flow (NEW!)
+- **`SEP24Helper`** - SEP-24 on/off-ramp integration helpers (NEW!)
+- **Custom Error Classes** - Detailed error handling with specific error types (NEW!)
+- **Retry Logic** - Automatic retry with exponential backoff (NEW!)
 - **Wallet Integration** - Built-in Freighter wallet adapter
 - **TypeScript Support** - Full type safety and IntelliSense
 - **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
-- **Testnet Ready** - Complete testnet integration with examples
+- **Network Support** - Both Testnet and Mainnet (PUBLIC) support
+- **Unit Tests** - Test suite with Vitest (NEW!)
 
 ---
 
@@ -208,6 +213,87 @@ node examples/secure-server-example.mjs
 The SDK builds to:
 - **Client:** `dist/index.js` (Browser/React)
 - **Server:** `dist/server.js` (Node.js)
+
+---
+
+---
+
+## 📊 Project Status
+
+### ✅ Phase 1 - Core SDK (COMPLETE)
+
+- [x] **Core SDK with React component** - `<PayWithUSDC />` component fully functional
+- [x] **Transaction builder** - `createPaymentSession()` creates Stellar payment transactions
+- [x] **Transaction submitter** - `signAndSubmit()` signs and submits to Horizon
+- [x] **Freighter wallet integration** - Built-in adapter for browser extension
+- [x] **TypeScript support** - Full type safety and IntelliSense
+- [x] **Testnet integration** - Complete testnet support with examples
+- [x] **Next.js example app** - Working demo application
+- [x] **Server-side payment monitoring** - `PaymentMonitor` for secure verification
+- [x] **Secure webhooks** - Server-side webhook system with HMAC-SHA256 signatures
+- [x] **Crypto helpers** - `generateSignature()` and `verifySignature()` functions
+
+### 🚧 Phase 2 - Advanced Features (IN PROGRESS)
+
+- [x] **Backend webhook support** ✅ - Server-side webhooks implemented
+- [x] **SEP-24 on/off-ramp helpers** ✅ - Basic SEP-24 integration helpers implemented
+- [x] **Payment confirmation flows** ✅ - PaymentStatusTracker and status tracking implemented
+- [x] **Error handling improvements** ✅ - Custom error classes and improved error handling
+- [x] **Retry logic** ✅ - Automatic retry with exponential backoff for transactions
+- [x] **Unit tests** ✅ - Test suite configured with Vitest (tests for core functions)
+- [ ] **PaymentMonitor tests** ⚠️ - Tests for PaymentMonitor still needed
+
+### 📋 Phase 3 - Mobile Support (PLANNED)
+
+- [ ] **React Native SDK** ❌
+- [ ] **Mobile wallet adapters** ❌
+- [ ] **Cross-platform examples** ❌
+
+### 🎯 Phase 4 - Production Ready (PLANNED)
+
+- [ ] **Mainnet production release** ❌ - Currently testnet only
+- [ ] **CI/CD pipeline** ❌ - No automated testing/deployment
+- [ ] **Merchant pilot programs** ❌
+- [ ] **Performance optimizations** ❌
+- [ ] **Comprehensive documentation** ⚠️ - Basic docs exist, needs expansion
+
+---
+
+## 🔍 Current Implementation Details
+
+### What Works
+
+1. **Client-Side (Browser)**
+   - React component for payment UI
+   - Freighter wallet integration
+   - Transaction creation and signing
+   - Testnet support
+
+2. **Server-Side (Node.js)**
+   - Payment monitoring via Horizon API
+   - Secure webhook delivery with retries
+   - HMAC-SHA256 signature generation/verification
+   - Payment validation (amount, asset, issuer, destination)
+   - Idempotency protection
+   - Automatic expiration of pending payments
+
+### What's Missing
+
+1. **Critical for Production**
+   - Unit and integration tests
+   - Mainnet support (currently testnet only)
+   - CI/CD pipeline
+   - Comprehensive error handling
+
+2. **Feature Gaps**
+   - React Native support
+   - Additional wallet adapters (beyond Freighter)
+   - More comprehensive SEP-24 integration (currently basic helpers)
+   - Enhanced payment confirmation UI flows
+
+3. **Deprecated/Removed**
+   - Client-side `WebhookManager` (removed for security)
+   - Client-side `WebhookClient` (removed for security)
 
 ---
 

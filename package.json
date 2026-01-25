@@ -34,7 +34,9 @@
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "prepare": "npm run build",
-    "test": "echo \"(sem testes ainda)\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:webhook": "npm run build && node examples/secure-server-example.mjs"
   },
   "dependencies": {
@@ -46,7 +48,9 @@
     "@types/node": "25.0.9",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@vitest/coverage-v8": "^2.1.8",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
   }
 }
