@@ -1,15 +1,7 @@
 import sqlite3 from 'sqlite3';
-import type { PaymentRequest } from "../types/webhook";
+import { PersistenceAdapter, MonitoredPayment } from "./persistence";
 
-export type MonitoredPayment = {
-  id: string; // Session ID / Memo
-  request: PaymentRequest;
-  status: "pending" | "confirmed" | "failed";
-  createdAt: number;
-  expiresAt: number;
-};
-
-export class Database {
+export class Database implements PersistenceAdapter {
   private db: sqlite3.Database;
 
   constructor(dbPath: string = 'usdc_payments.db') {

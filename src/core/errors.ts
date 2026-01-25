@@ -58,6 +58,12 @@ export class TimeoutError extends PaymentSDKError {
   }
 }
 
+export class RateLimitError extends PaymentSDKError {
+  constructor(message: string, cause?: unknown) {
+    super(message, "RATE_LIMIT_EXCEEDED", cause);
+  }
+}
+
 /**
  * Helper function to extract error information from Stellar SDK errors
  */

@@ -222,4 +222,46 @@ describe("PaymentMonitor", () => {
     monitor.stop();
     await new Promise((resolve) => setTimeout(resolve, 50));
   });
+
+  it("should enforce rate limits on registration", async () => {
+    const monitor = new PaymentMonitor(
+      "TESTNET",
+      "GACCOUNT1234567890123456789012345678901234567890123456",
+      mockWebhookConfig,
+      { rateLimit: { windowMs: 1000, max: 2 } }
+    );
+
+    await expect(monitor.registerPayment("1", mockPaymentRequest)).resolves.not.toThrow();
+    await expect(monitor.registerPayment("2", mockPaymentRequest)).resolves.not.toThrow();
+    await expect(monitor.registerPayment("3", mockPaymentRequest)).rejects.toThrow("Rate limit exceeded");
+    // Verify it throws RateLimitError
+    await expect(monitor.registerPayment("4", mockPaymentRequest)).rejects.toMatchObject({
+        code: "RATE_LIMIT_EXCEEDED"
+    });
+  });
+
+  it("should use injected persistence adapter", async () => {
+    const mockAdapter = {
+      init: vi.fn(),
+      savePayment: vi.fn(),
+      getPendingPayments: vi.fn(),
+      updatePaymentStatus: vi.fn(),
+      deletePayment: vi.fn(),
+      markHashProcessed: vi.fn(),
+      isHashProcessed: vi.fn(),
+      getCursor: vi.fn(),
+      saveCursor: vi.fn(),
+      cleanup: vi.fn(),
+    };
+
+    const monitor = new PaymentMonitor(
+      "TESTNET",
+      "GACCOUNT1234567890123456789012345678901234567890123456",
+      mockWebhookConfig,
+      { adapter: mockAdapter }
+    );
+
+    await monitor.registerPayment("session-adapter", mockPaymentRequest);
+    expect(mockAdapter.savePayment).toHaveBeenCalled();
+  });
 });

@@ -1,21 +1,26 @@
 import * as StellarSDK from "stellar-sdk";
 import type { PaymentRequest, WebhookConfig } from "../types/webhook";
 import { WebhookSender } from "./webhookSender";
-import { ValidationError, NetworkError } from "../core/errors";
+import { ValidationError, NetworkError, RateLimitError } from "../core/errors";
 import { Database } from "./db";
+import { PersistenceAdapter } from "./persistence";
+import { RateLimiter, RateLimitConfig } from "./rateLimiter";
 
 type MonitorOptions = {
   timeoutMinutes?: number; // Default 15
+  adapter?: PersistenceAdapter;
+  rateLimit?: RateLimitConfig;
 };
 
 export class PaymentMonitor {
   private server: StellarSDK.Horizon.Server;
   private monitoredAccount: string;
   private webhookSender: WebhookSender;
-  private db: Database;
+  private db: PersistenceAdapter;
   private isPolling = false;
   private network: "TESTNET" | "PUBLIC";
   private timeoutMs: number;
+  private rateLimiter: RateLimiter;
 
   constructor(
     network: "TESTNET" | "PUBLIC",
@@ -27,7 +32,8 @@ export class PaymentMonitor {
     this.monitoredAccount = monitoredAccount;
     this.webhookSender = new WebhookSender(webhookConfig);
     this.timeoutMs = (options.timeoutMinutes || 15) * 60 * 1000;
-    this.db = new Database();
+    this.db = options.adapter || new Database();
+    this.rateLimiter = new RateLimiter(options.rateLimit);
 
     const horizonUrl = network === "TESTNET"
       ? "https://horizon-testnet.stellar.org"
@@ -40,6 +46,10 @@ export class PaymentMonitor {
    * Persists to SQLite.
    */
   async registerPayment(sessionId: string, request: PaymentRequest) {
+    if (!this.rateLimiter.check()) {
+      throw new RateLimitError("Rate limit exceeded for payment registration");
+    }
+
     if (!sessionId) {
       throw new ValidationError("Session ID is required", "sessionId");
     }
@@ -108,9 +118,17 @@ export class PaymentMonitor {
       }
     }
 
+    let lastCleanup = 0;
+    const cleanupInterval = 5 * 60 * 1000; // 5 minutes
+
     while (this.isPolling) {
       try {
-        await this.db.cleanup(Date.now());
+        const now = Date.now();
+        if (now - lastCleanup > cleanupInterval) {
+          await this.db.cleanup(now);
+          lastCleanup = now;
+        }
+
         cursor = await this.checkTransactions(cursor);
         await this.db.saveCursor(cursor);
       } catch (e) {
