@@ -1,3 +1,14 @@
+/**
+ * ✅ REFERENCE IMPLEMENTATION: Secure Server Verification
+ *
+ * This example demonstrates the correct v0.2.0-mvp flow:
+ * 1. Intent is registered on the server (PaymentMonitor).
+ * 2. PaymentMonitor watches the blockchain.
+ * 3. PaymentMonitor confirms payment and sends a signed webhook.
+ *
+ * NOTE: This example uses HTTP for demonstration. In production, ALWAYS use HTTPS for webhooks.
+ */
+
 import { PaymentMonitor, generateSignature, verifySignature } from "../dist/server.mjs";
 import { createPaymentSession } from "../dist/index.mjs";
 import http from "http";
@@ -73,6 +84,7 @@ const run = async () => {
   const merchantServer = startMerchantServer();
 
   // 2. Start Payment Monitor (The "Middleware" or Service)
+  // NOTE: This will create a 'usdc_payments.db' file for persistence.
   const monitor = new PaymentMonitor("TESTNET", storeWallet, {
     url: `http://localhost:${MERCHANT_PORT}/webhook`,
     secret: WEBHOOK_SECRET

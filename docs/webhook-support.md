@@ -139,7 +139,7 @@ app.post('/webhooks/payment', (req, res) => {
 
 ---
 
-## 🛡️ Security Features
+## 🛡️ Security & Reliability Features
 
 The `PaymentMonitor` enforces strict security rules before firing a webhook:
 
@@ -148,11 +148,11 @@ The `PaymentMonitor` enforces strict security rules before firing a webhook:
 3.  **Amount Validation:** Checks `received_amount >= requested_amount` (prevents underpayment).
 4.  **Idempotency:** A transaction hash is processed only once per running instance.
 5.  **Expiration:** Unpaid intents expire after the configured timeout (default 15 mins).
+6.  **Persistence:** Uses a local SQLite database (`usdc_payments.db`) to persist pending intents and the last processed Horizon cursor. This ensures that **no payments are missed** if the server restarts.
 
 ---
 
 ## 🔮 Roadmap
 
-- [ ] Persistent storage for `PaymentMonitor` (currently in-memory).
 - [ ] Support for Websockets for real-time frontend updates.
 - [ ] Support for multiple monitored accounts.

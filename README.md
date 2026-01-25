@@ -1,7 +1,5 @@
-[![Release](https://img.shields.io/badge/release-v0.1.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.1.0-mvp)
+[![Release](https://img.shields.io/badge/release-v0.2.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.2.0-mvp)
 [![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
-
-
 
 # USDC Payments SDK for Stellar (Web + Mobile)
 
@@ -18,7 +16,7 @@
 - **`<PayWithUSDC />`** - Drop-in React component for instant checkout
 - **`createPaymentSession()`** - Build Stellar payment transactions
 - **`signAndSubmit()`** - Sign and submit transactions to Horizon
-- **`PaymentMonitor`** - Secure Server-Side Payment Verification
+- **`PaymentMonitor`** - Secure Server-Side Payment Verification with SQLite Persistence
 - **`PaymentStatusTracker`** - Track payment status through the entire flow (NEW!)
 - **`SEP24Helper`** - SEP-24 on/off-ramp integration helpers (NEW!)
 - **Custom Error Classes** - Detailed error handling with specific error types (NEW!)
@@ -39,17 +37,40 @@ The client (web or mobile) is **never trusted** to confirm payments.
 
 All payment confirmations are performed **server-side**, based on **on-chain verification** by monitoring the Stellar network (Horizon).
 
-### Enforced Guarantees (v0.1.0-mvp)
-- Client-side payment confirmations are not accepted
-- Payments are confirmed only after on-chain verification
-- Destination address, asset code, and asset issuer are validated
-- Received amount must be greater than or equal to the requested amount
-- Idempotency prevents duplicate confirmations
-- Pending payment intents expire automatically (default: 15 minutes)
-- Merchant webhooks are sent server-to-server and signed with HMAC-SHA256
+### Enforced Guarantees (v0.2.0-mvp)
+- **Submission != Confirmation:** Client handles submission; Server handles confirmation.
+- **On-Chain Verification:** Payments are confirmed only after detecting the transaction on the Stellar ledger.
+- **Persistence:** The `PaymentMonitor` uses a local SQLite database (`usdc_payments.db`) to persist state, ensuring no payments are missed during server restarts.
+- **Strict Validation:** Destination, Asset, Issuer, and Amount are strictly validated against the registered intent.
+- **Idempotency:** Processed transaction hashes are stored to prevent duplicate processing.
+- **Expiration:** Pending payment intents expire automatically (default: 15 minutes).
+- **Secure Webhooks:** Merchant webhooks are sent server-to-server and signed with HMAC-SHA256.
 
 For a complete security description and vulnerability reporting guidelines, see [`SECURITY.md`](./SECURITY.md).
 
+---
+
+## 🔄 Payment Flow
+
+The payment lifecycle consists of two distinct phases: **Submission** (Client) and **Confirmation** (Server).
+
+1.  **Intent Creation (Server/Client):** The merchant creates a payment intent (e.g., "Order 123" for 50 USDC).
+2.  **Registration (Server):** The merchant backend registers this intent with the `PaymentMonitor`.
+3.  **Submission (Client):**
+    *   The user clicks "Pay" in the `<PayWithUSDC />` component.
+    *   The wallet signs the transaction.
+    *   The transaction is submitted to the Stellar network.
+    *   *Note: `onSuccess` here only means "Submitted".*
+4.  **Verification (Server):**
+    *   The `PaymentMonitor` polls the blockchain (Horizon).
+    *   It detects the incoming transaction to the merchant's wallet.
+    *   It matches the transaction Memo to the Session ID.
+    *   It validates the amount, asset, and destination.
+5.  **Confirmation (Server):**
+    *   The `PaymentMonitor` marks the payment as confirmed in SQLite.
+    *   It sends a signed webhook to the merchant's backend to fulfill the order.
+
+---
 
 ## 🚀 Quick Start
 
@@ -78,10 +99,9 @@ function Checkout() {
       issuer="GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL"
       memo="ORDER_123" // Important for tracking!
       wallet={wallet}
-      onSuccess={(hash) => console.log('Payment sent:', hash)}
+      onSuccess={(hash) => console.log('Payment submitted (wait for confirmation):', hash)}
       onError={(error) => console.error('Payment failed:', error)}
       onStatusChange={(status) => console.log('Payment status:', status)}
-      // Status values: "creating", "signing", "submitting", "submitted", "failed"
     />
   );
 }
@@ -95,6 +115,7 @@ function Checkout() {
 import { PaymentMonitor } from '@zacksonpessoa/usdc-payments-sdk/server';
 
 // Initialize the monitor on your backend
+// A local SQLite DB (usdc_payments.db) will be created for persistence.
 const monitor = new PaymentMonitor("TESTNET", "YOUR_MERCHANT_ADDRESS", {
   url: "https://api.yoursite.com/webhooks/payment", // Internal or external webhook
   secret: "YOUR_WEBHOOK_SECRET_KEY" // Used for HMAC-SHA256 signing
@@ -113,13 +134,6 @@ monitor.registerPayment("ORDER_123", {
 // Start monitoring the blockchain
 monitor.start();
 ```
-
-The monitor performs strict validations before confirming:
-1.  **Idempotency:** Ensures payments are confirmed only once per session ID.
-2.  **Destination:** Verifies funds arrived at the monitored account.
-3.  **Asset & Issuer:** Strictly checks `asset_code` and `asset_issuer` match the intent.
-4.  **Amount:** Verifies received amount is greater than or equal to requested amount.
-5.  **Timeout:** Automatically expires pending payments after the configured timeout (default: 15m).
 
 ### 3. Verify Webhook Signature
 
@@ -145,15 +159,12 @@ app.post('/webhooks/payment', (req, res) => {
 
 ---
 
-## 🔒 Security Improvements (Feb 2025)
+## 🔒 Security Improvements (v0.2.0-mvp)
 
-This SDK has been updated to remove client-side webhooks.
-- **Removed:** `WebhookManager` in the client (browser).
-- **Added:** `PaymentMonitor` for Node.js (Server).
-- **Added:** HMAC-SHA256 signature verification.
-- **Added:** Server-side hardening (Amount/Asset/Destination validation).
-
-**Why?** Client-side webhooks can be spoofed by malicious users. Confirmation must always happen on a trusted server by observing the blockchain directly.
+This SDK has been updated to strictly separate client and server responsibilities.
+- **Client:** Handles only transaction building, signing, and submission.
+- **Server:** Handles monitoring, validation, persistence (SQLite), and confirmation webhooks.
+- **Persistence:** The `PaymentMonitor` is now robust against server restarts, using a local SQLite database to track processed transactions and the Horizon cursor.
 
 ---
 
@@ -182,26 +193,11 @@ This SDK has been updated to remove client-side webhooks.
 > It does **not** mean the payment is confirmed or settled.
 >
 > Payment confirmation is performed **exclusively server-side**, based on **on-chain verification** by monitoring the Stellar network (Horizon).
->
-> Merchants must rely on the backend verification flow (e.g. `PaymentMonitor` + webhooks) to determine when a payment is actually confirmed.
-
-### Payment Status Tracking (NEW in Phase 2)
-
-The `onStatusChange` callback provides real-time updates on the payment flow:
-
-- `"creating"` - Creating payment session
-- `"signing"` - Transaction being signed by wallet
-- `"submitting"` - Transaction being submitted to network
-- `"submitted"` - Transaction submitted (not yet confirmed)
-- `"failed"` - Payment failed with error
-
-The button text also updates automatically to reflect the current status.
-
 
 ### Server Modules (`@zacksonpessoa/usdc-payments-sdk/server`)
 
 #### `PaymentMonitor`
-Monitors an account for specific incoming payments.
+Monitors an account for specific incoming payments, with built-in SQLite persistence.
 
 #### `generateSignature(payload, secret)` / `verifySignature(payload, signature, secret)`
 Crypto helpers for secure webhook communication.
@@ -212,7 +208,7 @@ Crypto helpers for secure webhook communication.
 
 ### Secure Server Example
 
-See [examples/secure-server-example.mjs](examples/secure-server-example.mjs) for a complete simulation of the payment flow.
+See [examples/secure-server-example.mjs](examples/secure-server-example.mjs) for a complete simulation of the payment flow including server-side verification and persistence.
 
 ```bash
 npm run build
@@ -231,8 +227,6 @@ The SDK builds to:
 
 ---
 
----
-
 ## 📊 Project Status
 
 ### ✅ Phase 1 - Core SDK (COMPLETE)
@@ -246,19 +240,17 @@ The SDK builds to:
 - [x] **Next.js example app** - Working demo application
 - [x] **Server-side payment monitoring** - `PaymentMonitor` for secure verification
 - [x] **Secure webhooks** - Server-side webhook system with HMAC-SHA256 signatures
-- [x] **Crypto helpers** - `generateSignature()` and `verifySignature()` functions
 
 ### ✅ Phase 2 - Advanced Features (COMPLETE)
 
 - [x] **Backend webhook support** ✅ - Server-side webhooks implemented
+- [x] **SQLite Persistence** ✅ - `PaymentMonitor` persists state to `usdc_payments.db`
 - [x] **SEP-24 on/off-ramp helpers** ✅ - Basic SEP-24 integration helpers implemented
 - [x] **Payment confirmation flows** ✅ - PaymentStatusTracker and status tracking implemented
 - [x] **Error handling improvements** ✅ - Custom error classes and improved error handling
 - [x] **Retry logic** ✅ - Automatic retry with exponential backoff for transactions
-- [x] **Unit tests** ✅ - Test suite configured with Vitest (all 36 tests passing)
+- [x] **Unit tests** ✅ - Test suite configured with Vitest
 - [x] **PaymentMonitor tests** ✅ - Tests for PaymentMonitor and WebhookSender implemented
-- [x] **PaymentMonitor error handling** ✅ - Improved error handling with custom error classes
-- [x] **Test mocking** ✅ - Complete mocks for Stellar SDK (Operation, TransactionBuilder, etc.)
 
 ### 📋 Phase 3 - Mobile Support (PLANNED)
 
@@ -271,7 +263,6 @@ The SDK builds to:
 - [ ] **Mainnet production release** ❌ - Currently testnet only
 - [ ] **CI/CD pipeline** ❌ - No automated testing/deployment
 - [ ] **Merchant pilot programs** ❌
-- [ ] **Performance optimizations** ❌
 - [ ] **Comprehensive documentation** ⚠️ - Basic docs exist, needs expansion
 
 ---
@@ -287,7 +278,7 @@ The SDK builds to:
    - Testnet support
 
 2. **Server-Side (Node.js)**
-   - Payment monitoring via Horizon API
+   - Payment monitoring via Horizon API with **SQLite Persistence**
    - Secure webhook delivery with retries
    - HMAC-SHA256 signature generation/verification
    - Payment validation (amount, asset, issuer, destination)
@@ -297,20 +288,16 @@ The SDK builds to:
 ### What's Missing
 
 1. **Critical for Production**
-   - Unit and integration tests
    - Mainnet support (currently testnet only)
    - CI/CD pipeline
-   - Comprehensive error handling
 
 2. **Feature Gaps**
    - React Native support
    - Additional wallet adapters (beyond Freighter)
-   - More comprehensive SEP-24 integration (currently basic helpers)
-   - Enhanced payment confirmation UI flows
 
 3. **Deprecated/Removed**
-   - Client-side `WebhookManager` (removed for security)
-   - Client-side `WebhookClient` (removed for security)
+   - Client-side `WebhookManager` (use `PaymentMonitor`)
+   - Client-side `WebhookClient` (use `PaymentMonitor`)
 
 ---
 

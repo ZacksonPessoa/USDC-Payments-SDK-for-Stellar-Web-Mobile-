@@ -21,10 +21,11 @@ graph TB
     subgraph "Server Side (Node.js)"
         E[PaymentMonitor] --> D
         E --> F[Merchant Backend]
+        E --> G[(SQLite DB)]
     end
     
     subgraph "Stellar Network"
-        D --> G[Blockchain Ledger]
+        D --> H[Blockchain Ledger]
     end
 ```
 
@@ -43,7 +44,8 @@ src/
 ├── server/                      # Server-side Module
 │   ├── paymentMonitor.ts        # Blockchain monitoring logic
 │   ├── webhookSender.ts         # Secure webhook delivery
-│   └── crypto.ts                # HMAC signatures
+│   ├── crypto.ts                # HMAC signatures
+│   └── db.ts                    # SQLite persistence layer
 ├── types.ts                     # TypeScript type definitions
 └── index.ts                     # Package exports
 ```
@@ -61,6 +63,7 @@ sequenceDiagram
     participant W as Wallet (Freighter)
     participant H as Stellar Horizon
     participant S as Merchant Server (PaymentMonitor)
+    participant DB as SQLite DB
 
     Note over S: 1. Monitor Started & Intent Registered
 
@@ -77,11 +80,12 @@ sequenceDiagram
     loop Polling
         S->>H: Check Account History
         H-->>S: New Transactions
+        S->>DB: Check Idempotency (Hash)
     end
 
     S->>S: Validate (Asset, Amount, Dest)
-    S->>S: Mark Confirmed
-    S->>M: Webhook (Signed) / WebSocket
+    S->>DB: Mark Confirmed
+    S->>M: Webhook (Signed)
     M->>U: Show "Payment Successful!"
 ```
 
@@ -115,23 +119,30 @@ interface PayWithUSDCProps {
 
 ### PaymentMonitor (Server)
 
-**Purpose:** Securely verifies payments on-chain.
+**Purpose:** Securely verifies payments on-chain and persists state.
+
+**Persistence (SQLite):**
+The `PaymentMonitor` automatically creates a `usdc_payments.db` file to store:
+1.  **Pending Payments:** Intents waiting for confirmation.
+2.  **Processed Hashes:** To prevent double-processing (idempotency).
+3.  **Horizon Cursor:** To resume monitoring from the exact last processed transaction after a server restart.
 
 **Process:**
-1.  **Registration:** The backend registers a "Payment Intent" with expected parameters (Amount, Asset, Destination, Memo).
-2.  **Monitoring:** Polling the Stellar Horizon API for transactions to the merchant account.
+1.  **Registration:** The backend registers a "Payment Intent". Saved to SQLite.
+2.  **Monitoring:** Polling the Stellar Horizon API. On startup, it resolves the cursor (latest or stored) to ensure no skipped transactions.
 3.  **Matching:** Matches incoming transactions by Memo (Session ID).
 4.  **Validation:**
     *   `tx.destination == expected.destination`
     *   `tx.asset == expected.asset`
     *   `tx.amount >= expected.amount`
-5.  **Confirmation:** If valid, sends a signed webhook to the merchant app.
+5.  **Confirmation:** If valid, updates status in SQLite and sends a signed webhook.
 
 ### Security Model
 
 *   **Trust Boundary:** The Client is untrusted. The Server is trusted.
 *   **Signatures:** Webhooks are signed with HMAC-SHA256 to prove origin.
 *   **Idempotency:** The monitor tracks processed transaction hashes to prevent double-spending/double-counting.
+*   **Persistence:** Ensures reliability even if the server crashes.
 
 ---
 
@@ -158,9 +169,6 @@ const MAINNET_CONFIG = {
 ---
 
 ## 🚀 Future Architecture (Roadmap)
-
-### Phase 2: Persistence (Planned)
-Currently, `PaymentMonitor` uses in-memory storage. Future versions will support Redis/Database adapters for persistence across restarts.
 
 ### Phase 3: Websockets (Planned)
 Direct WebSocket support to push confirmation events to the frontend client from the monitor.

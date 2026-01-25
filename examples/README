@@ -1,3 +1,6 @@
+# ⚠️ NON-PRODUCTION EXAMPLE
+> **Security Warning:** These examples are for demonstration purposes only. Do not use this code directly in production environments without proper security hardening (e.g., using HTTPS, managing secrets via environment variables, input validation).
+
 # Next.js Example — USDC Payments SDK Demo
 
 This is a complete working example of how to integrate the USDC Payments SDK for Stellar into a Next.js application.
@@ -32,7 +35,7 @@ To test the **Secure Server Verification**, run the included simulation script:
 npm run build
 
 # Run the secure server example
-node secure-server-example.mjs
+node examples/secure-server-example.mjs
 ```
 
 This script simulates:
@@ -47,12 +50,13 @@ This script simulates:
 ```
 examples/
 ├── pages/
-│   └── index.tsx           # Main demo page
-├── secure-server-example.mjs # Server-side verification demo
-├── package.json           # Dependencies and scripts
-├── next.config.cjs        # Next.js configuration
-├── tsconfig.json          # TypeScript configuration
-└── README                 # This file
+│   └── index.tsx              # Main demo page
+├── secure-server-example.mjs  # ✅ RECOMMENDED: Server-side verification demo
+├── webhook-example.ts         # ⚠️ DEPRECATED: Legacy client-side webhook example
+├── package.json               # Dependencies and scripts
+├── next.config.cjs            # Next.js configuration
+├── tsconfig.json              # TypeScript configuration
+└── README                     # This file
 ```
 
 ---
