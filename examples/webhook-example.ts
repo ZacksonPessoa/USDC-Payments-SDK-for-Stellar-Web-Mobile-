@@ -1,8 +1,19 @@
+/**
+ * ⚠️ DEPRECATED: Client-Side Webhooks
+ *
+ * This example demonstrates the legacy client-side webhook manager.
+ * In v0.2.0-mvp, client-side webhooks are considered INSECURE and deprecated.
+ *
+ * Please use the Server-Side PaymentMonitor for secure payment verification.
+ * See: examples/secure-server-example.mjs
+ */
+
 import { webhookManager, createPaymentSession, signAndSubmit } from "../src/index";
 import * as StellarSDK from "stellar-sdk";
 
 async function webhookExample() {
   console.log("🚀 Iniciando exemplo de webhooks...\n");
+  console.warn("⚠️ AVISO: Este exemplo usa webhooks do lado do cliente que são depreciados e inseguros.");
 
   // Configura webhook para um backend de exemplo
   webhookManager.registerWebhook("merchant-backend", {
