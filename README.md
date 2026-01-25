@@ -80,6 +80,8 @@ function Checkout() {
       wallet={wallet}
       onSuccess={(hash) => console.log('Payment sent:', hash)}
       onError={(error) => console.error('Payment failed:', error)}
+      onStatusChange={(status) => console.log('Payment status:', status)}
+      // Status values: "creating", "signing", "submitting", "submitted", "failed"
     />
   );
 }
@@ -161,17 +163,18 @@ This SDK has been updated to remove client-side webhooks.
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `amount` | `number` | ✅ | Payment amount |
-| `destination` | `string` | ✅ | Destination Stellar address |
-| `wallet` | `WalletAdapter` | ✅ | Wallet implementation |
+| `amount` | `number` | ✅ | Payment amount (must be > 0) |
+| `destination` | `string` | ✅ | Destination Stellar address (56 chars, starts with G) |
+| `wallet` | `WalletAdapter` | ✅ | Wallet implementation (e.g., FreighterWallet) |
 | `assetCode` | `string` | ❌ | Asset code (default: "XLM") |
-| `issuer` | `string` | ❌ | Asset issuer (required for non-native assets) |
-| `memo` | `string` | ❌ | Transaction memo (ID) |
+| `issuer` | `string` | ❌ | Asset issuer (required for non-native assets like USDC) |
+| `memo` | `string` | ❌ | Transaction memo (ID) - Important for payment tracking |
 | `network` | `"TESTNET" \| "PUBLIC"` | ❌ | Network (default: "TESTNET") |
-| `source` | `string` | ❌ | Source address (optional) |
+| `source` | `string` | ❌ | Source address (optional, uses wallet if not provided) |
 | `label` | `string` | ❌ | Button label (default: "Pay") |
-| `onSuccess` | `(hash: string) => void` | ❌ | Success callback (UI only) |
+| `onSuccess` | `(hash: string) => void` | ❌ | Success callback (UI only - transaction submitted) |
 | `onError` | `(error: unknown) => void` | ❌ | Error callback |
+| `onStatusChange` | `(status: string) => void` | ❌ | Status change callback (NEW!) - Tracks payment flow: "creating", "signing", "submitting", "submitted", "failed" |
 
 > ⚠️ **Important – Payment Confirmation**
 >
@@ -181,6 +184,18 @@ This SDK has been updated to remove client-side webhooks.
 > Payment confirmation is performed **exclusively server-side**, based on **on-chain verification** by monitoring the Stellar network (Horizon).
 >
 > Merchants must rely on the backend verification flow (e.g. `PaymentMonitor` + webhooks) to determine when a payment is actually confirmed.
+
+### Payment Status Tracking (NEW in Phase 2)
+
+The `onStatusChange` callback provides real-time updates on the payment flow:
+
+- `"creating"` - Creating payment session
+- `"signing"` - Transaction being signed by wallet
+- `"submitting"` - Transaction being submitted to network
+- `"submitted"` - Transaction submitted (not yet confirmed)
+- `"failed"` - Payment failed with error
+
+The button text also updates automatically to reflect the current status.
 
 
 ### Server Modules (`@zacksonpessoa/usdc-payments-sdk/server`)
