@@ -31,6 +31,24 @@ vi.mock("./webhookSender", () => ({
   })),
 }));
 
+// Mock Database
+vi.mock("./db", () => {
+  return {
+    Database: vi.fn().mockImplementation(() => ({
+      init: vi.fn().mockResolvedValue(undefined),
+      savePayment: vi.fn().mockResolvedValue(undefined),
+      getPendingPayments: vi.fn().mockResolvedValue([]),
+      updatePaymentStatus: vi.fn().mockResolvedValue(undefined),
+      deletePayment: vi.fn().mockResolvedValue(undefined),
+      markHashProcessed: vi.fn().mockResolvedValue(undefined),
+      isHashProcessed: vi.fn().mockResolvedValue(false),
+      getCursor: vi.fn().mockResolvedValue("now"),
+      saveCursor: vi.fn().mockResolvedValue(undefined),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    })),
+  };
+});
+
 describe("PaymentMonitor", () => {
   const mockWebhookConfig: WebhookConfig = {
     url: "https://example.com/webhook",
@@ -62,28 +80,28 @@ describe("PaymentMonitor", () => {
     expect(monitor).toBeInstanceOf(PaymentMonitor);
   });
 
-  it("should register a payment to monitor", () => {
+  it("should register a payment to monitor", async () => {
     const monitor = new PaymentMonitor(
       "TESTNET",
       "GACCOUNT1234567890123456789012345678901234567890123456",
       mockWebhookConfig
     );
 
-    monitor.registerPayment("session-123", mockPaymentRequest);
+    await monitor.registerPayment("session-123", mockPaymentRequest);
 
     // Payment should be registered (we can't directly access private members,
     // but we can test behavior)
-    expect(() => monitor.registerPayment("session-123", mockPaymentRequest)).not.toThrow();
+    await expect(monitor.registerPayment("session-123", mockPaymentRequest)).resolves.not.toThrow();
   });
 
-  it("should throw error when registering payment without session ID", () => {
+  it("should throw error when registering payment without session ID", async () => {
     const monitor = new PaymentMonitor(
       "TESTNET",
       "GACCOUNT1234567890123456789012345678901234567890123456",
       mockWebhookConfig
     );
 
-    expect(() => monitor.registerPayment("", mockPaymentRequest)).toThrow(
+    await expect(monitor.registerPayment("", mockPaymentRequest)).rejects.toThrow(
       "Session ID is required"
     );
   });
@@ -125,12 +143,6 @@ describe("PaymentMonitor", () => {
   });
 
   it("should start and stop monitoring", async () => {
-    const monitor = new PaymentMonitor(
-      "TESTNET",
-      "GACCOUNT1234567890123456789012345678901234567890123456",
-      mockWebhookConfig
-    );
-
     const mockCall = vi.fn().mockResolvedValue({
       records: [],
     });
@@ -143,11 +155,24 @@ describe("PaymentMonitor", () => {
               call: mockCall,
             }),
           }),
+          cursor: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                call: mockCall,
+              }),
+            }),
+          }),
         }),
       }),
     }));
 
-    monitor.registerPayment("session-123", mockPaymentRequest);
+    const monitor = new PaymentMonitor(
+      "TESTNET",
+      "GACCOUNT1234567890123456789012345678901234567890123456",
+      mockWebhookConfig
+    );
+
+    await monitor.registerPayment("session-123", mockPaymentRequest);
 
     // Start monitoring (non-blocking)
     const startPromise = monitor.start(10); // 10ms interval for testing
@@ -162,12 +187,6 @@ describe("PaymentMonitor", () => {
   });
 
   it("should not start monitoring if already polling", async () => {
-    const monitor = new PaymentMonitor(
-      "TESTNET",
-      "GACCOUNT1234567890123456789012345678901234567890123456",
-      mockWebhookConfig
-    );
-
     const mockCall = vi.fn().mockResolvedValue({
       records: [],
     });
@@ -180,9 +199,22 @@ describe("PaymentMonitor", () => {
               call: mockCall,
             }),
           }),
+          cursor: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                call: mockCall,
+              }),
+            }),
+          }),
         }),
       }),
     }));
+
+    const monitor = new PaymentMonitor(
+      "TESTNET",
+      "GACCOUNT1234567890123456789012345678901234567890123456",
+      mockWebhookConfig
+    );
 
     monitor.start(10);
     monitor.start(10); // Should not start again

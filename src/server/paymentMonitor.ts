@@ -2,14 +2,7 @@ import * as StellarSDK from "stellar-sdk";
 import type { PaymentRequest, WebhookConfig } from "../types/webhook";
 import { WebhookSender } from "./webhookSender";
 import { ValidationError, NetworkError } from "../core/errors";
-
-type MonitoredPayment = {
-  id: string; // Session ID / Memo
-  request: PaymentRequest;
-  status: "pending" | "confirmed" | "failed";
-  createdAt: number;
-  expiresAt: number;
-};
+import { Database } from "./db";
 
 type MonitorOptions = {
   timeoutMinutes?: number; // Default 15
@@ -19,8 +12,7 @@ export class PaymentMonitor {
   private server: StellarSDK.Horizon.Server;
   private monitoredAccount: string;
   private webhookSender: WebhookSender;
-  private pendingPayments: Map<string, MonitoredPayment> = new Map();
-  private processedHashes: Set<string> = new Set();
+  private db: Database;
   private isPolling = false;
   private network: "TESTNET" | "PUBLIC";
   private timeoutMs: number;
@@ -35,6 +27,7 @@ export class PaymentMonitor {
     this.monitoredAccount = monitoredAccount;
     this.webhookSender = new WebhookSender(webhookConfig);
     this.timeoutMs = (options.timeoutMinutes || 15) * 60 * 1000;
+    this.db = new Database();
 
     const horizonUrl = network === "TESTNET"
       ? "https://horizon-testnet.stellar.org"
@@ -44,9 +37,9 @@ export class PaymentMonitor {
 
   /**
    * Register a payment intent to monitor.
-   * In a real app, you would save this to a database.
+   * Persists to SQLite.
    */
-  registerPayment(sessionId: string, request: PaymentRequest) {
+  async registerPayment(sessionId: string, request: PaymentRequest) {
     if (!sessionId) {
       throw new ValidationError("Session ID is required", "sessionId");
     }
@@ -70,7 +63,7 @@ export class PaymentMonitor {
       );
     }
 
-    this.pendingPayments.set(sessionId, {
+    await this.db.savePayment({
       id: sessionId,
       request,
       status: "pending",
@@ -82,25 +75,48 @@ export class PaymentMonitor {
 
   /**
    * Start monitoring the account for incoming payments.
-   * Uses simple polling for this example.
+   * Uses simple polling with SQLite persistence.
    */
   async start(intervalMs: number = 5000) {
     if (this.isPolling) return;
     this.isPolling = true;
+
+    // Initialize DB
+    await this.db.init();
     console.log(`[PaymentMonitor] Started monitoring ${this.monitoredAccount} on ${this.network}`);
 
-    let cursor = "now";
+    // Resume from persisted cursor
+    let cursor = await this.db.getCursor();
+
+    // If starting fresh ('now'), resolve to the latest concrete cursor
+    if (cursor === "now") {
+      try {
+        const latest = await this.server.payments()
+          .forAccount(this.monitoredAccount)
+          .limit(1)
+          .order("desc")
+          .call();
+
+        if (latest.records.length > 0) {
+          cursor = latest.records[0].paging_token;
+        } else {
+          cursor = "0";
+        }
+        await this.db.saveCursor(cursor);
+      } catch (error) {
+         console.warn("[PaymentMonitor] Failed to resolve latest cursor, defaulting to 'now' (polling might skip txs):", error);
+      }
+    }
 
     while (this.isPolling) {
       try {
-        this.cleanupExpiredPayments();
-        await this.checkTransactions(cursor);
-        // In a real implementation, you would update the cursor properly based on the last tx.
+        await this.db.cleanup(Date.now());
+        cursor = await this.checkTransactions(cursor);
+        await this.db.saveCursor(cursor);
       } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e));
         console.error("[PaymentMonitor] Error checking transactions:", error);
         // Continue polling even if there's an error
-        // In production, you might want to implement exponential backoff or alerting
       }
       await new Promise(r => setTimeout(r, intervalMs));
     }
@@ -110,24 +126,15 @@ export class PaymentMonitor {
     this.isPolling = false;
   }
 
-  private cleanupExpiredPayments() {
-    const now = Date.now();
-    for (const [id, payment] of this.pendingPayments.entries()) {
-      if (now > payment.expiresAt) {
-        console.log(`[PaymentMonitor] Payment expired: ${id}`);
-        this.pendingPayments.delete(id);
-      }
-    }
-  }
-
-  private async checkTransactions(cursor: string) {
+  private async checkTransactions(cursor: string): Promise<string> {
     // Fetch recent payments for the account
     let payments;
     try {
       payments = await this.server.payments()
         .forAccount(this.monitoredAccount)
+        .cursor(cursor)
         .limit(20)
-        .order("desc")
+        .order("asc") // Process in order to not miss updates on cursor
         .call();
     } catch (error) {
       throw new NetworkError(
@@ -136,7 +143,23 @@ export class PaymentMonitor {
       );
     }
 
+    if (payments.records.length === 0) return cursor;
+
+    // Fetch pending payments from DB
+    const pendingList = await this.db.getPendingPayments();
+    // Map: Base64(SHA256(SessionID)) -> Payment
+    const pendingMap = new Map<string, any>();
+    for (const p of pendingList) {
+      const hashBuf = StellarSDK.hash(Buffer.from(p.id));
+      const hashBase64 = hashBuf.toString("base64");
+      pendingMap.set(hashBase64, p);
+    }
+
+    let lastToken = cursor;
+
     for (const record of payments.records) {
+      lastToken = record.paging_token;
+
       // Basic type filtering
       if (record.type !== "payment" && record.type !== "path_payment_strict_send" && record.type !== "path_payment_strict_receive") {
         continue;
@@ -145,32 +168,36 @@ export class PaymentMonitor {
       const txHash = record.transaction_hash;
 
       // Idempotency Check 1: Already processed this transaction hash?
-      if (this.processedHashes.has(txHash)) continue;
+      if (await this.db.isHashProcessed(txHash)) continue;
 
       // 1. Validate Destination
-      // The 'to' field in payment records usually indicates the destination.
-      // However, for path payments, we need to be careful.
-      // record.to should be the monitored account.
       if (record.to !== this.monitoredAccount) continue;
 
       // Need to fetch transaction to get the Memo
+      // Optimization: Horizon 'payments' endpoint includes 'transaction' usually if expanded, but here we call .transaction()
       const tx = await record.transaction();
-      // In Horizon response, tx.memo is the string value (if text/id)
-      const memoValue = tx.memo;
 
-      // Check if this memo matches any pending payment
-      if (memoValue && this.pendingPayments.has(memoValue)) {
-        await this.confirmPayment(memoValue, txHash, record);
-        this.processedHashes.add(txHash);
+      // tx.memo is the value
+      // tx.memo_type indicates type
+
+      if (tx.memo_type === "hash" && tx.memo) {
+        const matchedPayment = pendingMap.get(tx.memo);
+        if (matchedPayment) {
+          await this.confirmPayment(matchedPayment, txHash, record);
+          await this.db.markHashProcessed(txHash);
+        }
       }
     }
+
+    return lastToken;
   }
 
-  private async confirmPayment(sessionId: string, txHash: string, paymentRecord: any) {
-    const payment = this.pendingPayments.get(sessionId)!;
+  private async confirmPayment(payment: any, txHash: string, paymentRecord: any) {
+    const sessionId = payment.id;
 
-    // Idempotency Check 2: Already confirmed? (Should be handled by map removal, but double check)
-    if (payment.status === "confirmed") return;
+    // Idempotency Check 2: Already confirmed?
+    // DB check is the source of truth
+    // If it was in pendingList, it is pending.
 
     // 2. Validate Asset
     const isNative = paymentRecord.asset_type === "native";
@@ -200,8 +227,7 @@ export class PaymentMonitor {
     console.log(`[PaymentMonitor] Payment Confirmed: ${sessionId} (Tx: ${txHash})`);
 
     // Update status
-    payment.status = "confirmed";
-    this.pendingPayments.delete(sessionId); // Stop monitoring this one
+    await this.db.updatePaymentStatus(sessionId, "confirmed");
 
     // Send Webhook
     await this.webhookSender.sendEvent({

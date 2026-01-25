@@ -27,6 +27,7 @@ vi.mock("stellar-sdk", async () => {
   // Mock TransactionBuilder
   const mockTransactionBuilder = {
     addOperation: vi.fn().mockReturnThis(),
+    addMemo: vi.fn().mockReturnThis(),
     setTimeout: vi.fn().mockReturnThis(),
     build: vi.fn().mockReturnValue(mockTransaction),
   };
