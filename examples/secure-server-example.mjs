@@ -11,6 +11,7 @@ const MERCHANT_PORT = 3001;
 const WEBHOOK_SECRET = "my_super_secure_secret_key_123";
 
 const startMerchantServer = () => {
+  console.warn("⚠️  WARNING: DO NOT USE IN PRODUCTION WITHOUT HTTPS/TLS ⚠️");
   const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/webhook") {
       let body = "";
@@ -90,7 +91,7 @@ const run = async () => {
 
   // Register intent with the monitor
   console.log(`[App] Session Created. ID: ${session.id}`);
-  monitor.registerPayment(session.id, session.request);
+  await monitor.registerPayment(session.id, session.request);
 
   console.log("\n[App] ⏳ Waiting for payment... (Simulating only)");
   console.log("[App] To test for real, you would send XLM to:");

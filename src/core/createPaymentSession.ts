@@ -123,6 +123,9 @@ export async function createPaymentSession(
     );
   }
 
+  const sessionId = `session-${Date.now()}`;
+  const sessionHash = StellarSDK.hash(Buffer.from(sessionId));
+
   // Build transaction
   let tx;
   try {
@@ -131,6 +134,7 @@ export async function createPaymentSession(
       networkPassphrase,
     })
       .addOperation(paymentOp)
+      .addMemo(StellarSDK.Memo.hash(sessionHash))
       .setTimeout(60)
       .build();
   } catch (error) {
@@ -143,7 +147,7 @@ export async function createPaymentSession(
   const xdr = tx.toXDR();
 
   const session: PaymentSession = {
-    id: `session-${Date.now()}`,
+    id: sessionId,
     request: req,
     xdr,                  
   };
