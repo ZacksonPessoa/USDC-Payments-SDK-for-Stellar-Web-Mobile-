@@ -1,6 +1,7 @@
 import * as StellarSDK from "stellar-sdk";
 import type { PaymentRequest, WebhookConfig } from "../types/webhook";
 import { WebhookSender } from "./webhookSender";
+import { ValidationError, NetworkError } from "../core/errors";
 
 type MonitoredPayment = {
   id: string; // Session ID / Memo
@@ -46,7 +47,28 @@ export class PaymentMonitor {
    * In a real app, you would save this to a database.
    */
   registerPayment(sessionId: string, request: PaymentRequest) {
-    if (!sessionId) throw new Error("Session ID is required");
+    if (!sessionId) {
+      throw new ValidationError("Session ID is required", "sessionId");
+    }
+
+    if (!request.amount || request.amount <= 0) {
+      throw new ValidationError("Amount must be greater than zero", "amount");
+    }
+
+    if (!request.assetCode) {
+      throw new ValidationError("Asset code is required", "assetCode");
+    }
+
+    if (!request.destination) {
+      throw new ValidationError("Destination is required", "destination");
+    }
+
+    if (request.assetCode !== "XLM" && !request.issuer) {
+      throw new ValidationError(
+        "Issuer is required for non-native assets",
+        "issuer"
+      );
+    }
 
     this.pendingPayments.set(sessionId, {
       id: sessionId,
@@ -75,7 +97,10 @@ export class PaymentMonitor {
         await this.checkTransactions(cursor);
         // In a real implementation, you would update the cursor properly based on the last tx.
       } catch (e) {
-        console.error("[PaymentMonitor] Error checking transactions:", e);
+        const error = e instanceof Error ? e : new Error(String(e));
+        console.error("[PaymentMonitor] Error checking transactions:", error);
+        // Continue polling even if there's an error
+        // In production, you might want to implement exponential backoff or alerting
       }
       await new Promise(r => setTimeout(r, intervalMs));
     }
@@ -97,11 +122,19 @@ export class PaymentMonitor {
 
   private async checkTransactions(cursor: string) {
     // Fetch recent payments for the account
-    const payments = await this.server.payments()
-      .forAccount(this.monitoredAccount)
-      .limit(20)
-      .order("desc")
-      .call();
+    let payments;
+    try {
+      payments = await this.server.payments()
+        .forAccount(this.monitoredAccount)
+        .limit(20)
+        .order("desc")
+        .call();
+    } catch (error) {
+      throw new NetworkError(
+        `Failed to fetch payments from Horizon: ${error instanceof Error ? error.message : String(error)}`,
+        error
+      );
+    }
 
     for (const record of payments.records) {
       // Basic type filtering

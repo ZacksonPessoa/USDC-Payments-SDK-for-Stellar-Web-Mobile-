@@ -21,9 +21,14 @@ export class WebhookSender {
         const result = await this.sendSingleEvent(payloadString, attempt);
         if (result.success) return result;
 
-        if (attempt < maxAttempts) {
-          await new Promise(r => setTimeout(r, attempt * 1000));
+        // If this is the last attempt, return the result even if not successful
+        // (so we can include response details like status code)
+        if (attempt === maxAttempts) {
+          return result;
         }
+
+        // Wait before retrying
+        await new Promise(r => setTimeout(r, attempt * 1000));
       } catch (error) {
         if (attempt === maxAttempts) {
           return {
@@ -32,6 +37,8 @@ export class WebhookSender {
             error: error instanceof Error ? error.message : String(error)
           };
         }
+        // Wait before retrying on error
+        await new Promise(r => setTimeout(r, attempt * 1000));
       }
     }
 

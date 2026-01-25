@@ -233,7 +233,7 @@ The SDK builds to:
 - [x] **Secure webhooks** - Server-side webhook system with HMAC-SHA256 signatures
 - [x] **Crypto helpers** - `generateSignature()` and `verifySignature()` functions
 
-### 🚧 Phase 2 - Advanced Features (IN PROGRESS)
+### ✅ Phase 2 - Advanced Features (COMPLETE)
 
 - [x] **Backend webhook support** ✅ - Server-side webhooks implemented
 - [x] **SEP-24 on/off-ramp helpers** ✅ - Basic SEP-24 integration helpers implemented
@@ -241,7 +241,8 @@ The SDK builds to:
 - [x] **Error handling improvements** ✅ - Custom error classes and improved error handling
 - [x] **Retry logic** ✅ - Automatic retry with exponential backoff for transactions
 - [x] **Unit tests** ✅ - Test suite configured with Vitest (tests for core functions)
-- [ ] **PaymentMonitor tests** ⚠️ - Tests for PaymentMonitor still needed
+- [x] **PaymentMonitor tests** ✅ - Tests for PaymentMonitor and WebhookSender implemented
+- [x] **PaymentMonitor error handling** ✅ - Improved error handling with custom error classes
 
 ### 📋 Phase 3 - Mobile Support (PLANNED)
 

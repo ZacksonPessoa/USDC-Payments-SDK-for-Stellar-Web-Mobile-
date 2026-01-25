@@ -1,16 +1,38 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createPaymentSession } from "./createPaymentSession";
 import {
   InvalidPaymentRequestError,
   ValidationError,
 } from "./errors";
 import type { PaymentRequest } from "../types";
+import * as StellarSDK from "stellar-sdk";
+
+// Mock Stellar SDK Horizon Server
+vi.mock("stellar-sdk", async () => {
+  const actual = await vi.importActual("stellar-sdk");
+  return {
+    ...actual,
+    Horizon: {
+      Server: vi.fn().mockImplementation(() => ({
+        loadAccount: vi.fn().mockResolvedValue({
+          accountId: () => "GACCOUNT1234567890123456789012345678901234567890123456",
+          sequenceNumber: () => "123456",
+        }),
+      })),
+    },
+  };
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("createPaymentSession", () => {
   // Valid Stellar addresses (56 characters, starting with G)
-  const validDestination = "GDESTINATIONADDRESS123456789012345678901234567890";
+  // Using real Stellar address format: base32 encoded, 56 chars
+  const validDestination = "GDESTINATIONADDRESS1234567890123456789012345678901234ABC";
   const validIssuer = "GADGV62S2PRYD4HGRB3DPSYRH64X2EXMNPPTELVD4EKJ6LFL76STFGSL";
-  const validSource = "GSOURCEADDRESS123456789012345678901234567890";
+  const validSource = "GSOURCEADDRESS123456789012345678901234567890123456789012";
 
   const validRequest: PaymentRequest = {
     amount: 10,
