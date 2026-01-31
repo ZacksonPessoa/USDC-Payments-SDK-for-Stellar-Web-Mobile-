@@ -1,4 +1,5 @@
 import * as StellarSDK from "stellar-sdk";
+import * as crypto from "node:crypto";
 import type { PaymentRequest, WebhookConfig } from "../types/webhook";
 import { WebhookSender } from "./webhookSender";
 import { ValidationError, NetworkError, RateLimitError } from "../core/errors";
@@ -10,6 +11,10 @@ type MonitorOptions = {
   timeoutMinutes?: number; // Default 15
   adapter?: PersistenceAdapter;
   rateLimit?: RateLimitConfig;
+  pollIntervalMs?: number;
+  horizonTimeoutMs?: number;
+  lockTtlMs?: number;
+  instanceId?: string;
 };
 
 export class PaymentMonitor {
@@ -21,6 +26,10 @@ export class PaymentMonitor {
   private network: "TESTNET" | "PUBLIC";
   private timeoutMs: number;
   private rateLimiter: RateLimiter;
+  private pollIntervalMs: number;
+  private horizonTimeoutMs: number;
+  private lockTtlMs: number;
+  private instanceId: string;
 
   constructor(
     network: "TESTNET" | "PUBLIC",
@@ -34,11 +43,16 @@ export class PaymentMonitor {
     this.timeoutMs = (options.timeoutMinutes || 15) * 60 * 1000;
     this.db = options.adapter || new Database();
     this.rateLimiter = new RateLimiter(options.rateLimit);
+    this.pollIntervalMs = options.pollIntervalMs || 5000;
+    this.horizonTimeoutMs = options.horizonTimeoutMs || 15000;
+    this.lockTtlMs = options.lockTtlMs || 20000;
+    this.instanceId = options.instanceId || crypto.randomUUID();
 
     const horizonUrl = network === "TESTNET"
       ? "https://horizon-testnet.stellar.org"
       : "https://horizon.stellar.org";
-    this.server = new StellarSDK.Horizon.Server(horizonUrl);
+    // @ts-ignore - StellarSDK types might not expose timeout in options directly in all versions, passing as any for safety
+    this.server = new StellarSDK.Horizon.Server(horizonUrl, { allowHttp: true, timeout: this.horizonTimeoutMs });
   }
 
   /**
@@ -87,13 +101,16 @@ export class PaymentMonitor {
    * Start monitoring the account for incoming payments.
    * Uses simple polling with SQLite persistence.
    */
-  async start(intervalMs: number = 5000) {
+  async start(intervalMs?: number) {
     if (this.isPolling) return;
     this.isPolling = true;
 
+    // Use provided interval or default from options
+    const pollInterval = intervalMs || this.pollIntervalMs;
+
     // Initialize DB
     await this.db.init();
-    console.log(`[PaymentMonitor] Started monitoring ${this.monitoredAccount} on ${this.network}`);
+    console.log(`[PaymentMonitor] Started monitoring ${this.monitoredAccount} on ${this.network} (Instance: ${this.instanceId})`);
 
     // Resume from persisted cursor
     let cursor = await this.db.getCursor();
@@ -123,20 +140,31 @@ export class PaymentMonitor {
 
     while (this.isPolling) {
       try {
-        const now = Date.now();
-        if (now - lastCleanup > cleanupInterval) {
-          await this.db.cleanup(now);
-          lastCleanup = now;
-        }
+        // Attempt to acquire lock to ensure single-instance processing
+        const locked = await this.db.acquireLock('monitor_lock', this.lockTtlMs, this.instanceId);
 
-        cursor = await this.checkTransactions(cursor);
-        await this.db.saveCursor(cursor);
+        if (locked) {
+          try {
+            const now = Date.now();
+            if (now - lastCleanup > cleanupInterval) {
+              await this.db.cleanup(now);
+              lastCleanup = now;
+            }
+
+            cursor = await this.checkTransactions(cursor);
+            await this.db.saveCursor(cursor);
+          } finally {
+            // Release lock so other instances (or this one) can pick it up next time
+            // This prevents lock hoarding if the interval is long
+            await this.db.releaseLock('monitor_lock', this.instanceId);
+          }
+        }
       } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e));
         console.error("[PaymentMonitor] Error checking transactions:", error);
         // Continue polling even if there's an error
       }
-      await new Promise(r => setTimeout(r, intervalMs));
+      await new Promise(r => setTimeout(r, pollInterval));
     }
   }
 

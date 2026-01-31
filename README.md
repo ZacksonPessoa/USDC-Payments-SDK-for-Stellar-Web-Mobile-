@@ -168,6 +168,27 @@ This SDK has been updated to strictly separate client and server responsibilitie
 
 ---
 
+## 🛡️ Production-Lite Hardening (v0.3.0)
+
+For "production-lite" environments (e.g., 2 load-balanced instances), the `PaymentMonitor` now includes built-in concurrency controls.
+
+### Concurrency & Locking
+The SDK implements a **polling lock** using the persistence adapter (SQLite by default).
+*   **Prevent Concurrent Execution:** Only one `PaymentMonitor` instance will poll the blockchain at a time.
+*   **Self-Healing:** If an instance crashes while holding the lock, it will automatically expire (TTL) so other instances can take over.
+*   **Active/Passive:** In a multi-instance deployment, instances compete for the lock. One becomes active, others wait.
+
+### Deployment Recommendations
+*   **Single Instance:** Works out of the box. No configuration needed.
+*   **Multi-Instance (2+):**
+    *   Ensure all instances share the same filesystem (for SQLite) OR implement a custom `PersistenceAdapter` backed by an external DB (Postgres/Redis).
+    *   Set `instanceId` to a unique value for debugging (optional, defaults to UUID).
+
+### Migration Path
+To scale beyond "lite" usage (SQLite on shared disk), implement the `PersistenceAdapter` interface to use an external database like PostgreSQL. The locking logic (`acquireLock`/`releaseLock`) is already defined in the interface to support this transition seamlessly.
+
+---
+
 ## 📦 API Reference
 
 ### PayWithUSDC Component

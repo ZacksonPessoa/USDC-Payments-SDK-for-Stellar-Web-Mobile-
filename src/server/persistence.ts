@@ -19,4 +19,6 @@ export interface PersistenceAdapter {
   getCursor(): Promise<string>;
   saveCursor(cursor: string): Promise<void>;
   cleanup(now: number): Promise<void>;
+  acquireLock(key: string, ttlMs: number, owner: string): Promise<boolean>;
+  releaseLock(key: string, owner: string): Promise<void>;
 }
