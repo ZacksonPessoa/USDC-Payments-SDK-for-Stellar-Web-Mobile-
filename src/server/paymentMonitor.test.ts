@@ -126,7 +126,8 @@ describe("PaymentMonitor", () => {
 
     expect(monitor).toBeInstanceOf(PaymentMonitor);
     expect(StellarSDK.Horizon.Server).toHaveBeenCalledWith(
-      "https://horizon.stellar.org"
+      "https://horizon.stellar.org",
+      { allowHttp: true, timeout: 15000 }
     );
   });
 
@@ -138,7 +139,8 @@ describe("PaymentMonitor", () => {
     );
 
     expect(StellarSDK.Horizon.Server).toHaveBeenCalledWith(
-      "https://horizon-testnet.stellar.org"
+      "https://horizon-testnet.stellar.org",
+      { allowHttp: true, timeout: 15000 }
     );
   });
 

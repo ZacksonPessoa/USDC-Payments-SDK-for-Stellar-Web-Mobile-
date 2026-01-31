@@ -1,22 +1,19 @@
 ---
-name: 💡 Feature Request
-about: Suggest a new feature or improvement for the USDC Payments SDK
-title: "[FEATURE] "
+name: Feature request
+about: Suggest an idea for this project
+title: ''
 labels: enhancement
 assignees: ''
 ---
 
-### Summary
-<!-- A clear and concise description of the feature you'd like to see. -->
+**Is your feature request related to a problem? Please describe.**
+A clear and concise description of what the problem is. Ex: I'm always frustrated when [...]
 
-### Problem
-<!-- What problem does this feature solve? -->
+**Describe the solution you'd like**
+A clear and concise description of what you want to happen.
 
-### Proposed Solution
-<!-- How would you like to see it implemented? -->
+**Describe alternatives you've considered**
+A clear and concise description of any alternative solutions or features you've considered.
 
-### Alternatives
-<!-- Any alternative solutions you've considered? -->
-
-### Additional Context
-<!-- Add any other context, mockups, or references. -->
+**Additional context**
+Add any other context or screenshots about the feature request here.

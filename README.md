@@ -1,11 +1,10 @@
-[![Release](https://img.shields.io/badge/release-v0.2.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.2.0-mvp)
+[![Release](https://img.shields.io/badge/release-v0.3.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.0-mvp)
 [![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
 
 # USDC Payments SDK for Stellar (Web + Mobile)
 
 **One-line checkout SDK to make paying with USDC on Stellar as easy as Stripe.**
 
-[![npm version](https://badge.fury.io/js/%40zacksonpessoa%2Fusdc-payments-sdk.svg)](https://badge.fury.io/js/%40zacksonpessoa%2Fusdc-payments-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-blue.svg)](https://www.typescriptlang.org/)
 
@@ -16,16 +15,33 @@
 - **`<PayWithUSDC />`** - Drop-in React component for instant checkout
 - **`createPaymentSession()`** - Build Stellar payment transactions
 - **`signAndSubmit()`** - Sign and submit transactions to Horizon
-- **`PaymentMonitor`** - Secure Server-Side Payment Verification with SQLite Persistence
-- **`PaymentStatusTracker`** - Track payment status through the entire flow (NEW!)
-- **`SEP24Helper`** - SEP-24 on/off-ramp integration helpers (NEW!)
-- **Custom Error Classes** - Detailed error handling with specific error types (NEW!)
-- **Retry Logic** - Automatic retry with exponential backoff (NEW!)
+- **`PaymentMonitor`** - Secure Server-Side Payment Verification with Persistence Abstraction (SQLite Default)
+- **`PaymentStatusTracker`** - Track payment status through the entire flow
+- **`SEP24Helper`** - SEP-24 on/off-ramp integration helpers
+- **Production-Lite Hardening** - Polling locks for multi-instance deployments (v0.3.0)
+- **Rate Limiting** - Token bucket limiting on payment registration (v0.2.0)
+- **TTL Cleanup** - Automatic cleanup of expired intents and locks (v0.2.0)
+- **Custom Error Classes** - Detailed error handling with specific error types
+- **Retry Logic** - Automatic retry with exponential backoff
 - **Wallet Integration** - Built-in Freighter wallet adapter
 - **TypeScript Support** - Full type safety and IntelliSense
 - **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
 - **Network Support** - Both Testnet and Mainnet (PUBLIC) support
 - **Unit Tests** - Test suite with Vitest (NEW!)
+
+---
+
+## 🚧 Public Beta (Testnet-First)
+
+This SDK is currently in **Public Beta**.
+- **Network Support:** Fully functional on Stellar Testnet. Mainnet (Public) support is technically available but recommended for pilot/testing only.
+- **Stability:** "Production-Lite" features (locking, persistence) are in place, but comprehensive audits and large-scale load testing are ongoing.
+- **Reporting:** Please report bugs or feature requests via GitHub Issues using the provided templates.
+
+### How to Test (Quickstart)
+1. Clone the repo.
+2. Run the secure server example: `npm run test:webhook`.
+3. Use the `PayWithUSDC` component in your React app pointing to your server.
 
 ---
 
@@ -120,7 +136,11 @@ const monitor = new PaymentMonitor("TESTNET", "YOUR_MERCHANT_ADDRESS", {
   url: "https://api.yoursite.com/webhooks/payment", // Internal or external webhook
   secret: "YOUR_WEBHOOK_SECRET_KEY" // Used for HMAC-SHA256 signing
 }, {
-  timeoutMinutes: 15 // Stop monitoring payment after 15 minutes
+  timeoutMinutes: 15,      // Stop monitoring payment after 15 minutes
+  pollIntervalMs: 5000,    // Check Horizon every 5s (optional)
+  horizonTimeoutMs: 15000, // Horizon request timeout (optional)
+  lockTtlMs: 20000,        // Lock expiration for multi-instance (optional)
+  instanceId: "inst-1"     // Unique ID for this instance (optional)
 });
 
 // Register an expected payment (Intent)
@@ -249,6 +269,10 @@ The SDK builds to:
 ---
 
 ## 📊 Project Status
+
+### 🏆 Releases / Hardening Track
+- **v0.3.0-mvp**: Production-Lite Hardening (Polling Lock, MonitorOptions).
+- **v0.2.0-mvp**: Security Hardening (Rate limiting, PersistenceAdapter, TTL Cleanup).
 
 ### ✅ Phase 1 - Core SDK (COMPLETE)
 
