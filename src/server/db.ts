@@ -26,12 +26,44 @@ export class Database implements PersistenceAdapter {
       `CREATE TABLE IF NOT EXISTS meta (
         key TEXT PRIMARY KEY,
         value TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS locks (
+        key TEXT PRIMARY KEY,
+        owner TEXT,
+        expires_at INTEGER
       )`
     ];
 
     for (const query of queries) {
       await this.run(query);
     }
+  }
+
+  async acquireLock(key: string, ttlMs: number, owner: string): Promise<boolean> {
+    const now = Date.now();
+    const expiresAt = now + ttlMs;
+
+    try {
+      await this.run(
+        `INSERT INTO locks (key, owner, expires_at) VALUES (?, ?, ?)`,
+        [key, owner, expiresAt]
+      );
+      return true;
+    } catch (err: any) {
+      if (err.code === 'SQLITE_CONSTRAINT') {
+        // Lock exists, check if expired and update atomically
+        const changes = await this.runWithChanges(
+          `UPDATE locks SET owner = ?, expires_at = ? WHERE key = ? AND expires_at < ?`,
+          [owner, expiresAt, key, now]
+        );
+        return changes > 0;
+      }
+      throw err;
+    }
+  }
+
+  async releaseLock(key: string, owner: string): Promise<void> {
+    await this.run(`DELETE FROM locks WHERE key = ? AND owner = ?`, [key, owner]);
   }
 
   async savePayment(payment: MonitoredPayment): Promise<void> {
@@ -93,6 +125,15 @@ export class Database implements PersistenceAdapter {
       this.db.run(sql, params, (err) => {
         if (err) reject(err);
         else resolve();
+      });
+    });
+  }
+
+  private runWithChanges(sql: string, params: any[] = []): Promise<number> {
+    return new Promise((resolve, reject) => {
+      this.db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve(this.changes);
       });
     });
   }
