@@ -1,7 +1,7 @@
 /**
  * ✅ REFERENCE IMPLEMENTATION: Secure Server Verification
  *
- * This example demonstrates the correct v0.2.0-mvp flow:
+ * This example demonstrates the correct v0.3.0-mvp flow:
  * 1. Intent is registered on the server (PaymentMonitor).
  * 2. PaymentMonitor watches the blockchain.
  * 3. PaymentMonitor confirms payment and sends a signed webhook.

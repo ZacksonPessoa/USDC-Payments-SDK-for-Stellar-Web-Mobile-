@@ -2,7 +2,7 @@
  * ⚠️ DEPRECATED: Client-Side Webhooks
  *
  * This example demonstrates the legacy client-side webhook manager.
- * In v0.2.0-mvp, client-side webhooks are considered INSECURE and deprecated.
+ * Since v0.2.0-mvp, client-side webhooks are considered INSECURE and deprecated.
  *
  * Please use the Server-Side PaymentMonitor for secure payment verification.
  * See: examples/secure-server-example.mjs
