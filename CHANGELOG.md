@@ -6,6 +6,23 @@ The format follows a simplified version of Keep a Changelog, and the project adh
 
 ---
 
+## [v0.3.0-mvp] — 2026-01-20
+
+### 🛡️ Production-Lite Hardening
+- **Polling Lock:** Implemented concurrency control for `PaymentMonitor` to prevent race conditions in multi-instance deployments.
+- **Lock TTL:** Added configurable `lockTtlMs` to auto-expire locks if an instance crashes.
+- **Monitor Options:** Added `pollIntervalMs`, `horizonTimeoutMs`, `lockTtlMs`, and `instanceId` to `PaymentMonitor` configuration.
+- **Persistence:** Enhanced `PersistenceAdapter` interface with `acquireLock` and `releaseLock` methods.
+
+## [v0.2.0-mvp] — 2026-01-19
+
+### 🔒 Security & Hardening
+- **SQLite Persistence:** `PaymentMonitor` now uses SQLite by default to persist state across restarts.
+- **Rate Limiting:** Added `RateLimiter` to restrict payment session registration frequency.
+- **TTL Cleanup:** Implemented automatic cleanup of expired payments and locks.
+- **Error Handling:** Introduced `RateLimitError` and improved error reporting.
+- **Persistence Adapter:** Refactored persistence logic into a pluggable `PersistenceAdapter` interface.
+
 ## [v0.1.0-mvp] — 2026-01-18
 
 ### 🚀 Added
