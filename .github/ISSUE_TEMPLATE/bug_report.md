@@ -21,7 +21,7 @@ assignees: ''
 <!-- What actually happened. Include error messages, screenshots, or logs if possible. -->
 
 ### Environment
-- SDK Version:
+- SDK Version: (e.g., v0.3.0-mvp)
 - OS / Browser:
 - Node.js version:
 - Stellar Network: testnet / mainnet

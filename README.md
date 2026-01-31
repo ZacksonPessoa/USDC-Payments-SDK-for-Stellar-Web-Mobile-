@@ -1,13 +1,36 @@
-[![Release](https://img.shields.io/badge/release-v0.2.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.2.0-mvp)
+[![Release](https://img.shields.io/badge/release-v0.3.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.0-mvp)
 [![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
 
 # USDC Payments SDK for Stellar (Web + Mobile)
 
 **One-line checkout SDK to make paying with USDC on Stellar as easy as Stripe.**
 
-[![npm version](https://badge.fury.io/js/%40zacksonpessoa%2Fusdc-payments-sdk.svg)](https://badge.fury.io/js/%40zacksonpessoa%2Fusdc-payments-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-blue.svg)](https://www.typescriptlang.org/)
+
+---
+
+## 🚧 Public Beta (Testnet)
+
+**This SDK is currently in Public Beta.**
+
+*   **Status:** Pilot / Testing (v0.3.0-mvp)
+*   **Network:** Stellar Testnet (Primary), Mainnet (Experimental)
+*   **Use Case:** Development, Integration Testing, Pilot Programs.
+
+**Not yet intended for large-scale production use.**
+We are currently hardening the server-side components ("Production-Lite") and finalizing mobile support.
+
+### How to test (Quickstart)
+See the [Examples](./examples/) directory for a complete reference implementation:
+1.  Clone the repo.
+2.  `npm install`
+3.  `node examples/secure-server-example.mjs` (Simulates a full payment flow).
+
+### How to report issues
+Please report bugs or feature requests using our [GitHub Issues](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/issues).
+*   Use the **Bug Report** template for unexpected behavior.
+*   Use the **Feature Request** template for new ideas.
 
 ---
 
@@ -17,6 +40,9 @@
 - **`createPaymentSession()`** - Build Stellar payment transactions
 - **`signAndSubmit()`** - Sign and submit transactions to Horizon
 - **`PaymentMonitor`** - Secure Server-Side Payment Verification with SQLite Persistence
+- **`PersistenceAdapter`** - Pluggable storage backend (SQLite default)
+- **Rate Limiting** - Built-in protection for payment session registration
+- **Production-Lite Mode** - Polling locks for multi-instance safety
 - **`PaymentStatusTracker`** - Track payment status through the entire flow (NEW!)
 - **`SEP24Helper`** - SEP-24 on/off-ramp integration helpers (NEW!)
 - **Custom Error Classes** - Detailed error handling with specific error types (NEW!)
@@ -220,6 +246,20 @@ To scale beyond "lite" usage (SQLite on shared disk), implement the `Persistence
 #### `PaymentMonitor`
 Monitors an account for specific incoming payments, with built-in SQLite persistence.
 
+**Constructor:**
+`new PaymentMonitor(network, monitoredAccount, webhookConfig, options)`
+
+**Options (`MonitorOptions`):**
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `timeoutMinutes` | `number` | `15` | Expiration time for pending payments |
+| `pollIntervalMs` | `number` | `5000` | Polling interval in milliseconds |
+| `horizonTimeoutMs` | `number` | `15000` | Horizon request timeout |
+| `lockTtlMs` | `number` | `20000` | Lock TTL for concurrency control |
+| `instanceId` | `string` | `UUID` | Unique ID for this monitor instance |
+| `adapter` | `PersistenceAdapter` | `Database` | Custom persistence adapter |
+| `rateLimit` | `RateLimitConfig` | `{windowMs: 60000, max: 100}` | Rate limit configuration |
+
 #### `generateSignature(payload, secret)` / `verifySignature(payload, signature, secret)`
 Crypto helpers for secure webhook communication.
 
@@ -272,6 +312,19 @@ The SDK builds to:
 - [x] **Retry logic** ✅ - Automatic retry with exponential backoff for transactions
 - [x] **Unit tests** ✅ - Test suite configured with Vitest
 - [x] **PaymentMonitor tests** ✅ - Tests for PaymentMonitor and WebhookSender implemented
+
+### 📈 Releases / Hardening Track
+
+- **v0.2.0-mvp**: MVP Hardening
+    - [x] Rate limiting
+    - [x] TTL cleanup
+    - [x] SQLite PersistenceAdapter (default)
+    - [x] RateLimitError
+
+- **v0.3.0-mvp**: Production-Lite
+    - [x] Polling lock (concurrency control)
+    - [x] Multi-instance safety (SQLite/DB backed)
+    - [x] Configurable polling & lock TTL
 
 ### 📋 Phase 3 - Mobile Support (PLANNED)
 
