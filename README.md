@@ -32,6 +32,8 @@ Please report bugs or feature requests using our [GitHub Issues](https://github.
 *   Use the **Bug Report** template for unexpected behavior.
 *   Use the **Feature Request** template for new ideas.
 
+Feedback: Public Beta Feedback Thread (#11).
+
 ---
 
 ## ✨ Features
