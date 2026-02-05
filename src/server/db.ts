@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import { PersistenceAdapter, MonitoredPayment } from "./persistence";
+import type { PaymentEvent } from "../journey/events";
 
 export class Database implements PersistenceAdapter {
   private db: sqlite3.Database;
@@ -31,7 +32,19 @@ export class Database implements PersistenceAdapter {
         key TEXT PRIMARY KEY,
         owner TEXT,
         expires_at INTEGER
-      )`
+      )`,
+      `CREATE TABLE IF NOT EXISTS payment_journey_events (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        ts INTEGER NOT NULL,
+        data_json TEXT,
+        level TEXT,
+        tx_hash TEXT,
+        ts_bucket INTEGER NOT NULL
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_journey_dedup
+        ON payment_journey_events (session_id, type, tx_hash, ts_bucket)`
     ];
 
     for (const query of queries) {
@@ -108,6 +121,43 @@ export class Database implements PersistenceAdapter {
 
   async saveCursor(cursor: string): Promise<void> {
     await this.run(`INSERT OR REPLACE INTO meta (key, value) VALUES ('cursor', ?)`, [cursor]);
+  }
+
+  /** Payment journey: append event (idempotent by session_id + type + tx_hash + ts_bucket). */
+  async appendJourneyEvent(event: PaymentEvent): Promise<void> {
+    const tsBucket = Math.floor(event.ts / 60000) * 60000;
+    const txHash = event.data?.txHash ?? "";
+    await this.run(
+      `INSERT OR IGNORE INTO payment_journey_events (id, session_id, type, ts, data_json, level, tx_hash, ts_bucket)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        event.id,
+        event.sessionId,
+        event.type,
+        event.ts,
+        JSON.stringify(event.data || {}),
+        event.level || "info",
+        txHash,
+        tsBucket,
+      ]
+    );
+  }
+
+  /** Payment journey: list events for a session, ordered by ts ASC. */
+  async listJourneyEvents(sessionId: string): Promise<PaymentEvent[]> {
+    const rows = await this.all<any>(
+      `SELECT id, session_id, type, ts, data_json, level FROM payment_journey_events
+       WHERE session_id = ? ORDER BY ts ASC`,
+      [sessionId]
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      sessionId: row.session_id,
+      type: row.type,
+      ts: row.ts,
+      data: typeof row.data_json === "string" ? JSON.parse(row.data_json) : row.data_json || {},
+      level: row.level || "info",
+    }));
   }
 
   async cleanup(now: number): Promise<void> {

@@ -6,6 +6,8 @@ import { ValidationError, NetworkError, RateLimitError } from "../core/errors";
 import { Database } from "./db";
 import { PersistenceAdapter } from "./persistence";
 import { RateLimiter, RateLimitConfig } from "./rateLimiter";
+import type { JourneyStorageAdapter } from "./journeyStorage";
+import { PaymentEventType, createEvent } from "../journey/events";
 
 type MonitorOptions = {
   timeoutMinutes?: number; // Default 15
@@ -15,6 +17,8 @@ type MonitorOptions = {
   horizonTimeoutMs?: number;
   lockTtlMs?: number;
   instanceId?: string;
+  /** Optional: payment journey event store for observability */
+  journeyStore?: JourneyStorageAdapter;
 };
 
 export class PaymentMonitor {
@@ -30,6 +34,7 @@ export class PaymentMonitor {
   private horizonTimeoutMs: number;
   private lockTtlMs: number;
   private instanceId: string;
+  private journeyStore?: JourneyStorageAdapter;
 
   constructor(
     network: "TESTNET" | "PUBLIC",
@@ -47,6 +52,7 @@ export class PaymentMonitor {
     this.horizonTimeoutMs = options.horizonTimeoutMs || 15000;
     this.lockTtlMs = options.lockTtlMs || 20000;
     this.instanceId = options.instanceId || crypto.randomUUID();
+    this.journeyStore = options.journeyStore;
 
     const horizonUrl = network === "TESTNET"
       ? "https://horizon-testnet.stellar.org"
@@ -240,10 +246,20 @@ export class PaymentMonitor {
 
   private async confirmPayment(payment: any, txHash: string, paymentRecord: any) {
     const sessionId = payment.id;
+    const journeyData = {
+      txHash,
+      amount: payment.request.amount,
+      asset: payment.request.assetCode,
+      from: paymentRecord.from,
+      to: paymentRecord.to ?? this.monitoredAccount,
+      network: this.network,
+    };
 
-    // Idempotency Check 2: Already confirmed?
-    // DB check is the source of truth
-    // If it was in pendingList, it is pending.
+    if (this.journeyStore) {
+      await this.journeyStore.appendEvent(
+        createEvent(sessionId, PaymentEventType.TX_SEEN_ON_NETWORK, journeyData)
+      );
+    }
 
     // 2. Validate Asset
     const isNative = paymentRecord.asset_type === "native";
@@ -252,12 +268,22 @@ export class PaymentMonitor {
 
     if (recordAssetCode !== payment.request.assetCode) {
       console.warn(`[PaymentMonitor] Asset mismatch for ${sessionId}. Expected ${payment.request.assetCode}, got ${recordAssetCode}`);
+      if (this.journeyStore) {
+        await this.journeyStore.appendEvent(
+          createEvent(sessionId, PaymentEventType.TX_FAILED, { ...journeyData, error: "Asset mismatch" }, "warn")
+        );
+      }
       return;
     }
 
     // 3. Validate Issuer (Strict check for non-native assets)
     if (!isNative && payment.request.issuer && recordIssuer !== payment.request.issuer) {
       console.warn(`[PaymentMonitor] Issuer mismatch for ${sessionId}. Expected ${payment.request.issuer}, got ${recordIssuer}`);
+      if (this.journeyStore) {
+        await this.journeyStore.appendEvent(
+          createEvent(sessionId, PaymentEventType.TX_FAILED, { ...journeyData, error: "Issuer mismatch" }, "warn")
+        );
+      }
       return;
     }
 
@@ -267,10 +293,21 @@ export class PaymentMonitor {
 
     if (receivedAmount < requestedAmount) {
       console.warn(`[PaymentMonitor] Insufficient amount for ${sessionId}. Expected ${requestedAmount}, got ${receivedAmount}`);
+      if (this.journeyStore) {
+        await this.journeyStore.appendEvent(
+          createEvent(sessionId, PaymentEventType.TX_FAILED, { ...journeyData, error: "Insufficient amount" }, "warn")
+        );
+      }
       return;
     }
 
     console.log(`[PaymentMonitor] Payment Confirmed: ${sessionId} (Tx: ${txHash})`);
+
+    if (this.journeyStore) {
+      await this.journeyStore.appendEvent(
+        createEvent(sessionId, PaymentEventType.TX_CONFIRMED, journeyData)
+      );
+    }
 
     // Update status
     await this.db.updatePaymentStatus(sessionId, "confirmed");

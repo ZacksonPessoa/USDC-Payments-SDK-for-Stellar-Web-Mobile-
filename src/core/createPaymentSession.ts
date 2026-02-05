@@ -5,7 +5,7 @@ import {
   Operation,
   TransactionBuilder,
   Networks,
-  Account,            
+  Account,
 } from "stellar-sdk";
 import * as StellarSDK from "stellar-sdk";
 import {
@@ -13,6 +13,7 @@ import {
   ValidationError,
   NetworkError,
 } from "./errors";
+import { PaymentEventType, createEvent, emitJourneyEvent } from "../journey";
 
 export async function createPaymentSession(
   req: PaymentRequest,
@@ -149,11 +150,19 @@ export async function createPaymentSession(
   const session: PaymentSession = {
     id: sessionId,
     request: req,
-    xdr,                  
+    xdr,
   };
 
-  // REMOVED: Insecure client-side webhook emission.
-  // Webhooks should be triggered by the backend after monitoring the blockchain.
+  emitJourneyEvent(
+    createEvent(sessionId, PaymentEventType.SESSION_CREATED, {
+      amount: req.amount,
+      asset: req.assetCode,
+      to: req.destination,
+      network,
+      ...(req.memo && { memoHash: req.memo }),
+      ...(req.issuer && { issuer: req.issuer }),
+    })
+  );
 
   return session;
 }

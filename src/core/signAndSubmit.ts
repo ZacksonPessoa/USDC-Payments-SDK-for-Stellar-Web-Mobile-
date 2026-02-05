@@ -6,6 +6,7 @@ import {
   NetworkError,
   extractStellarError,
 } from "./errors";
+import { PaymentEventType, createEvent, emitJourneyEvent } from "../journey";
 
 export interface SignAndSubmitOptions {
   network?: NetworkName;
@@ -65,6 +66,22 @@ export async function signAndSubmit(
     );
   }
 
+  const journeyData: Record<string, unknown> = {
+    network: network,
+    ...(paymentRequest && {
+      amount: paymentRequest.amount,
+      asset: paymentRequest.assetCode,
+      to: paymentRequest.destination,
+      from: undefined,
+    }),
+  };
+
+  if (sessionId) {
+    emitJourneyEvent(
+      createEvent(sessionId, PaymentEventType.TX_SIGN_REQUESTED, journeyData)
+    );
+  }
+
   // Sign transaction
   let signer: StellarSDK.Keypair;
   try {
@@ -83,6 +100,14 @@ export async function signAndSubmit(
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const res = await server.submitTransaction(tx);
+      if (sessionId) {
+        emitJourneyEvent(
+          createEvent(sessionId, PaymentEventType.TX_SUBMITTED, {
+            ...journeyData,
+            txHash: res.hash,
+          })
+        );
+      }
       return { hash: res.hash };
     } catch (err: any) {
       lastError = err;
@@ -100,6 +125,20 @@ export async function signAndSubmit(
       ];
 
       if (resultCode && nonRetryableErrors.includes(resultCode)) {
+        if (sessionId) {
+          emitJourneyEvent(
+            createEvent(
+              sessionId,
+              PaymentEventType.TX_FAILED,
+              {
+                ...journeyData,
+                error: errorInfo.message,
+                txHash: errorInfo.transactionHash,
+              },
+              "error"
+            )
+          );
+        }
         throw new TransactionError(
           errorInfo.message,
           errorInfo.transactionHash,
@@ -119,6 +158,20 @@ export async function signAndSubmit(
 
   // All retries failed
   const errorInfo = extractStellarError(lastError!);
+  if (sessionId) {
+    emitJourneyEvent(
+      createEvent(
+        sessionId,
+        PaymentEventType.TX_FAILED,
+        {
+          ...journeyData,
+          error: errorInfo.message,
+          txHash: errorInfo.transactionHash,
+        },
+        "error"
+      )
+    );
+  }
   throw new TransactionError(
     `Transaction submission failed after ${retries} attempts: ${errorInfo.message}`,
     errorInfo.transactionHash,

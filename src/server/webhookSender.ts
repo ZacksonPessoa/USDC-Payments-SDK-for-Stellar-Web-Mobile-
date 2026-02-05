@@ -1,5 +1,6 @@
 import type { WebhookPayload, WebhookConfig, WebhookResult } from "../types/webhook";
 import { generateSignature } from "./crypto";
+import { PaymentEventType, createEvent, emitJourneyEvent } from "../journey";
 
 export class WebhookSender {
   private config: WebhookConfig;
@@ -16,10 +17,30 @@ export class WebhookSender {
     const maxAttempts = this.config.retryAttempts!;
     const payloadString = JSON.stringify(payload);
 
+    emitJourneyEvent(
+      createEvent(payload.sessionId, PaymentEventType.WEBHOOK_SENT, {
+        txHash: payload.transactionHash,
+        amount: payload.paymentRequest?.amount,
+        asset: payload.paymentRequest?.assetCode,
+        to: payload.paymentRequest?.destination,
+        network: undefined,
+      })
+    );
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         const result = await this.sendSingleEvent(payloadString, attempt);
-        if (result.success) return result;
+        if (result.success) {
+          emitJourneyEvent(
+            createEvent(payload.sessionId, PaymentEventType.WEBHOOK_ACKED, {
+              txHash: payload.transactionHash,
+              amount: payload.paymentRequest?.amount,
+              asset: payload.paymentRequest?.assetCode,
+              to: payload.paymentRequest?.destination,
+            })
+          );
+          return result;
+        }
 
         // If this is the last attempt, return the result even if not successful
         // (so we can include response details like status code)

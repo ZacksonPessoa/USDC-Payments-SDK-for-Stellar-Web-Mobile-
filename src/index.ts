@@ -8,3 +8,15 @@ export { WebhookClient } from "./core/webhookClient";
 export * from "./core/errors";
 export * from "./core/paymentStatus";
 export * from "./core/sep24";
+export {
+  PaymentEventType,
+  type PaymentEvent,
+  type PaymentEventData,
+  createEvent,
+  normalizeSessionId,
+  validateSessionId,
+  isPaymentJourneyEnabled,
+  setJourneyEmitter,
+  clearJourneyEmitter,
+  emitJourneyEvent,
+} from "./journey";
