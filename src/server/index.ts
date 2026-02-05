@@ -11,4 +11,4 @@ export {
   parseJourneyPath,
   parseListPaymentsQuery,
 } from "./journeyApi";
-export { setJourneyEmitter, clearJourneyEmitter } from "./journey";
+export { setJourneyEmitter, clearJourneyEmitter } from "../journey";
