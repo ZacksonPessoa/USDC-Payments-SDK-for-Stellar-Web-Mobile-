@@ -1,55 +1,77 @@
-import sqlite3 from 'sqlite3';
+import type * as sqlite3 from 'sqlite3';
 import { PersistenceAdapter, MonitoredPayment } from "./persistence";
 import type { PaymentEvent } from "../journey/events";
 
 export class Database implements PersistenceAdapter {
-  private db: sqlite3.Database;
+  private db: sqlite3.Database | undefined;
+  private dbPath: string;
+  private initPromise: Promise<void> | null = null;
 
   constructor(dbPath: string = 'usdc_payments.db') {
-    // verbose() for better stack traces
-    const sqlite = sqlite3.verbose();
-    this.db = new sqlite.Database(dbPath);
+    this.dbPath = dbPath;
   }
 
   async init(): Promise<void> {
-    const queries = [
-      `CREATE TABLE IF NOT EXISTS payments (
-        id TEXT PRIMARY KEY,
-        request_json TEXT,
-        status TEXT,
-        created_at INTEGER,
-        expires_at INTEGER
-      )`,
-      `CREATE TABLE IF NOT EXISTS processed_hashes (
-        hash TEXT PRIMARY KEY,
-        created_at INTEGER
-      )`,
-      `CREATE TABLE IF NOT EXISTS meta (
-        key TEXT PRIMARY KEY,
-        value TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS locks (
-        key TEXT PRIMARY KEY,
-        owner TEXT,
-        expires_at INTEGER
-      )`,
-      `CREATE TABLE IF NOT EXISTS payment_journey_events (
-        id TEXT PRIMARY KEY,
-        session_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        ts INTEGER NOT NULL,
-        data_json TEXT,
-        level TEXT,
-        tx_hash TEXT,
-        ts_bucket INTEGER NOT NULL
-      )`,
-      `CREATE UNIQUE INDEX IF NOT EXISTS idx_journey_dedup
-        ON payment_journey_events (session_id, type, tx_hash, ts_bucket)`
-    ];
+    if (this.initPromise) return this.initPromise;
 
-    for (const query of queries) {
-      await this.run(query);
-    }
+    this.initPromise = (async () => {
+      let sqlite3Mod;
+      try {
+        // Dynamic import to support optional peer dependency
+        const mod = await import('sqlite3');
+        sqlite3Mod = mod.default || mod;
+      } catch (e) {
+        throw new Error(
+          "sqlite3 is not installed. Please install it as a peer dependency: npm install sqlite3"
+        );
+      }
+
+      if (!this.db) {
+         const sqlite = sqlite3Mod.verbose();
+         this.db = new sqlite.Database(this.dbPath);
+      }
+
+      const queries = [
+        `CREATE TABLE IF NOT EXISTS payments (
+          id TEXT PRIMARY KEY,
+          request_json TEXT,
+          status TEXT,
+          created_at INTEGER,
+          expires_at INTEGER
+        )`,
+        `CREATE TABLE IF NOT EXISTS processed_hashes (
+          hash TEXT PRIMARY KEY,
+          created_at INTEGER
+        )`,
+        `CREATE TABLE IF NOT EXISTS meta (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        )`,
+        `CREATE TABLE IF NOT EXISTS locks (
+          key TEXT PRIMARY KEY,
+          owner TEXT,
+          expires_at INTEGER
+        )`,
+        `CREATE TABLE IF NOT EXISTS payment_journey_events (
+          id TEXT PRIMARY KEY,
+          session_id TEXT NOT NULL,
+          type TEXT NOT NULL,
+          ts INTEGER NOT NULL,
+          data_json TEXT,
+          level TEXT,
+          tx_hash TEXT,
+          ts_bucket INTEGER NOT NULL
+        )`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_journey_dedup
+          ON payment_journey_events (session_id, type, tx_hash, ts_bucket)`
+      ];
+
+      for (const query of queries) {
+        await this.runInternal(query);
+      }
+    })();
+
+    return this.initPromise;
   }
 
   async acquireLock(key: string, ttlMs: number, owner: string): Promise<boolean> {
@@ -184,37 +206,58 @@ export class Database implements PersistenceAdapter {
     await this.run(`DELETE FROM processed_hashes WHERE created_at < ?`, [thirtyDaysAgo]);
   }
 
+  // Ensure DB is initialized before operation
+  private async ensureInit() {
+    if (!this.db) {
+      if (this.initPromise) {
+        await this.initPromise;
+      } else {
+        await this.init();
+      }
+    }
+    if (!this.db) throw new Error("Database failed to initialize");
+  }
+
   // Helper methods to wrap sqlite3 callbacks
-  private run(sql: string, params: any[] = []): Promise<void> {
+  private async run(sql: string, params: any[] = []): Promise<void> {
+    await this.ensureInit();
+    return this.runInternal(sql, params);
+  }
+
+  // Internal run that skips ensureInit (used by init itself)
+  private runInternal(sql: string, params: any[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.db.run(sql, params, (err) => {
+      this.db!.run(sql, params, (err) => {
         if (err) reject(err);
         else resolve();
       });
     });
   }
 
-  private runWithChanges(sql: string, params: any[] = []): Promise<number> {
+  private async runWithChanges(sql: string, params: any[] = []): Promise<number> {
+    await this.ensureInit();
     return new Promise((resolve, reject) => {
-      this.db.run(sql, params, function (err) {
+      this.db!.run(sql, params, function (err) {
         if (err) reject(err);
         else resolve(this.changes);
       });
     });
   }
 
-  private get<T>(sql: string, params: any[] = []): Promise<T | undefined> {
+  private async get<T>(sql: string, params: any[] = []): Promise<T | undefined> {
+    await this.ensureInit();
     return new Promise((resolve, reject) => {
-      this.db.get(sql, params, (err, row) => {
+      this.db!.get(sql, params, (err, row) => {
         if (err) reject(err);
         else resolve(row as T);
       });
     });
   }
 
-  private all<T>(sql: string, params: any[] = []): Promise<T[]> {
+  private async all<T>(sql: string, params: any[] = []): Promise<T[]> {
+    await this.ensureInit();
     return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err, rows) => {
+      this.db!.all(sql, params, (err, rows) => {
         if (err) reject(err);
         else resolve(rows as T[]);
       });

@@ -110,6 +110,14 @@ The payment lifecycle consists of two distinct phases: **Submission** (Client) a
 npm install @zacksonpessoa/usdc-payments-sdk
 ```
 
+**Note:** If you are using the server-side components (like `PaymentMonitor`), you must also install `sqlite3` as a peer dependency:
+
+```bash
+npm install sqlite3
+```
+
+React components (`PayWithUSDC`) require `react` and `react-dom` (v19+) to be installed in your project.
+
 ### 1. Frontend: Collect Payment
 
 Use the `PayWithUSDC` component to initiate payment in your app.
@@ -249,6 +257,8 @@ To scale beyond "lite" usage (SQLite on shared disk), implement the `Persistence
 
 #### `PaymentMonitor`
 Monitors an account for specific incoming payments, with built-in SQLite persistence.
+
+**Requirement:** Requires `sqlite3` installed in your project.
 
 **Constructor:**
 `new PaymentMonitor(network, monitoredAccount, webhookConfig, options)`
