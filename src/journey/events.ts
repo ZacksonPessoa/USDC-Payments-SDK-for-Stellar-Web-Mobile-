@@ -50,10 +50,10 @@ const STELLAR_SECRET_REGEX = /^S[A-Z0-9]{55}$/;
 
 /**
  * Check if payment journey observability is enabled via env.
+ * Defaults to FALSE for security/privacy (opt-in).
  */
 export function isPaymentJourneyEnabled(): boolean {
   const v = process.env.PAYMENT_JOURNEY_ENABLED;
-  if (v === undefined || v === "") return true;
   return v === "true" || v === "1";
 }
 
