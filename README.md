@@ -55,6 +55,7 @@ Feedback: [Public Beta Feedback Thread (#11)](https://github.com/ZacksonPessoa/U
 - **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
 - **Network Support** - Both Testnet and Mainnet (PUBLIC) support
 - **Unit Tests** - Test suite with Vitest (NEW!)
+- **Payment Journey** - Observabilidade do fluxo de pagamento: eventos por sessão e stream SSE. Ver [Payment Journey](docs/payment-journey.md).
 
 ---
 
