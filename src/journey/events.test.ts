@@ -54,11 +54,11 @@ describe("journey events", () => {
   });
 
   describe("isPaymentJourneyEnabled", () => {
-    it("returns true when unset or empty", () => {
+    it("returns false when unset or empty (secure default)", () => {
       delete process.env.PAYMENT_JOURNEY_ENABLED;
-      expect(isPaymentJourneyEnabled()).toBe(true);
+      expect(isPaymentJourneyEnabled()).toBe(false);
       process.env.PAYMENT_JOURNEY_ENABLED = "";
-      expect(isPaymentJourneyEnabled()).toBe(true);
+      expect(isPaymentJourneyEnabled()).toBe(false);
     });
     it("returns true for true/1", () => {
       process.env.PAYMENT_JOURNEY_ENABLED = "true";

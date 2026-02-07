@@ -19,5 +19,13 @@ export function clearJourneyEmitter(): void {
 
 export function emitJourneyEvent(event: PaymentEvent): void {
   if (!isPaymentJourneyEnabled()) return;
-  if (currentEmitter) currentEmitter(event);
+  if (currentEmitter) {
+    try {
+      currentEmitter(event);
+    } catch (error) {
+      // Swallowing error to prevent breaking payment flow.
+      // Observability failures should never impact the core transaction.
+      console.warn("Failed to emit payment journey event", error);
+    }
+  }
 }

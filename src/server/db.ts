@@ -123,10 +123,25 @@ export class Database implements PersistenceAdapter {
     await this.run(`INSERT OR REPLACE INTO meta (key, value) VALUES ('cursor', ?)`, [cursor]);
   }
 
-  /** Payment journey: append event (idempotent by session_id + type + tx_hash + ts_bucket). */
+  /**
+   * Payment journey: append event (idempotent by session_id + type + tx_hash + ts_bucket).
+   * Note: The uniqueness constraint uses a 1-minute bucket (ts_bucket).
+   * This means if multiple events of the same type and txHash (or empty hash) occur
+   * within the same minute for the same session, only the first one is stored.
+   * This is an intentional trade-off to prevent log flooding while capturing key state changes.
+   */
   async appendJourneyEvent(event: PaymentEvent): Promise<void> {
     const tsBucket = Math.floor(event.ts / 60000) * 60000;
     const txHash = event.data?.txHash ?? "";
+    const dataJson = JSON.stringify(event.data || {});
+
+    // Hard limit on DB payload size (defense in depth)
+    // createEvent should handle this, but we protect the DB here too.
+    if (dataJson.length > 20 * 1024) {
+       console.warn(`[Journey] Dropping event ${event.id} due to excessive size (${dataJson.length} bytes)`);
+       return;
+    }
+
     await this.run(
       `INSERT OR IGNORE INTO payment_journey_events (id, session_id, type, ts, data_json, level, tx_hash, ts_bucket)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -135,7 +150,7 @@ export class Database implements PersistenceAdapter {
         event.sessionId,
         event.type,
         event.ts,
-        JSON.stringify(event.data || {}),
+        dataJson,
         event.level || "info",
         txHash,
         tsBucket,
