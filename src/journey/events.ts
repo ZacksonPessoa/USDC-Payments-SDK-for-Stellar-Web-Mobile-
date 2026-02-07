@@ -53,8 +53,15 @@ const STELLAR_SECRET_REGEX = /^S[A-Z0-9]{55}$/;
  * Defaults to FALSE for security/privacy (opt-in).
  */
 export function isPaymentJourneyEnabled(): boolean {
-  const v = process.env.PAYMENT_JOURNEY_ENABLED;
-  return v === "true" || v === "1";
+  try {
+    if (typeof process !== "undefined" && process.env) {
+      const v = process.env.PAYMENT_JOURNEY_ENABLED;
+      return v === "true" || v === "1";
+    }
+  } catch (e) {
+    // process is not defined
+  }
+  return false;
 }
 
 /**

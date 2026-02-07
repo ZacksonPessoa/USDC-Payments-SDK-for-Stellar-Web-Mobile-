@@ -40,10 +40,12 @@
     "test:webhook": "npm run build && node examples/secure-server-example.mjs"
   },
   "dependencies": {
+    "stellar-sdk": "^13.3.0"
+  },
+  "peerDependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    
-    "stellar-sdk": "^13.3.0"
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@types/node": "25.0.9",
@@ -51,6 +53,9 @@
     "@types/react-dom": "^19.2.0",
     "@types/sqlite3": "3.1.11",
     "@vitest/coverage-v8": "^2.1.8",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sqlite3": "^5.1.7",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.8"
