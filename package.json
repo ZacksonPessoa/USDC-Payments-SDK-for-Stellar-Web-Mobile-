@@ -1,6 +1,6 @@
 {
   "name": "@zacksonpessoa/usdc-payments-sdk",
-  "version": "0.3.0-mvp",
+  "version": "0.3.1-mvp",
   "description": "One-line checkout SDK to pay with USDC on Stellar (Web + Mobile).",
   "license": "ISC",
   "author": "Zackson Pessoa",
