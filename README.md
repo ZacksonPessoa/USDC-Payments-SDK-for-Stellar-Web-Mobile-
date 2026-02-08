@@ -1,4 +1,4 @@
-[![Release](https://img.shields.io/badge/release-v0.3.0--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.0-mvp)
+[![Release](https://img.shields.io/badge/release-v0.3.1--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.1-mvp)
 [![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
 
 # USDC Payments SDK for Stellar (Web + Mobile)
@@ -14,7 +14,7 @@
 
 **This SDK is currently in Public Beta.**
 
-*   **Status:** Pilot / Testing (v0.3.0-mvp)
+*   **Status:** Pilot / Testing (v0.3.1-mvp)
 *   **Network:** Stellar Testnet (Primary), Mainnet (Experimental)
 *   **Use Case:** Development, Integration Testing, Pilot Programs.
 
