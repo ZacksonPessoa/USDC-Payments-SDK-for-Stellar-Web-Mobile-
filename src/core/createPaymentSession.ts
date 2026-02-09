@@ -6,8 +6,10 @@ import {
   TransactionBuilder,
   Networks,
   Account,
+  Horizon,
+  hash,
+  Memo,
 } from "stellar-sdk";
-import * as StellarSDK from "stellar-sdk";
 import {
   InvalidPaymentRequestError,
   ValidationError,
@@ -84,7 +86,7 @@ export async function createPaymentSession(
   // Carregar a conta real para obter o número de sequência correto
   let sourceAccount;
   if (sourcePublicKey) {
-    const server = new StellarSDK.Horizon.Server(horizonUrl);
+    const server = new Horizon.Server(horizonUrl);
     try {
       sourceAccount = await server.loadAccount(sourceKey);
     } catch (error) {
@@ -125,7 +127,7 @@ export async function createPaymentSession(
   }
 
   const sessionId = `session-${Date.now()}`;
-  const sessionHash = StellarSDK.hash(Buffer.from(sessionId));
+  const sessionHash = hash(Buffer.from(sessionId));
 
   // Build transaction
   let tx;
@@ -135,7 +137,7 @@ export async function createPaymentSession(
       networkPassphrase,
     })
       .addOperation(paymentOp)
-      .addMemo(StellarSDK.Memo.hash(sessionHash))
+      .addMemo(Memo.hash(sessionHash))
       .setTimeout(60)
       .build();
   } catch (error) {

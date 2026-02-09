@@ -123,22 +123,8 @@ export class PaymentMonitor {
 
     // If starting fresh ('now'), resolve to the latest concrete cursor
     if (cursor === "now") {
-      try {
-        const latest = await this.server.payments()
-          .forAccount(this.monitoredAccount)
-          .limit(1)
-          .order("desc")
-          .call();
-
-        if (latest.records.length > 0) {
-          cursor = latest.records[0].paging_token;
-        } else {
-          cursor = "0";
-        }
-        await this.db.saveCursor(cursor);
-      } catch (error) {
-         console.warn("[PaymentMonitor] Failed to resolve latest cursor, defaulting to 'now' (polling might skip txs):", error);
-      }
+      cursor = await this.resolveInitialCursor();
+      await this.db.saveCursor(cursor);
     }
 
     let lastCleanup = 0;
@@ -178,8 +164,31 @@ export class PaymentMonitor {
     this.isPolling = false;
   }
 
+  private async resolveInitialCursor(): Promise<string> {
+    try {
+      const latest = await this.server.payments()
+        .forAccount(this.monitoredAccount)
+        .limit(1)
+        .order("desc")
+        .call();
+
+      if (latest.records.length > 0) {
+        return latest.records[0].paging_token;
+      } else {
+        return "0";
+      }
+    } catch (error) {
+       console.warn("[PaymentMonitor] Failed to resolve latest cursor, defaulting to 'now' (polling might skip txs):", error);
+       return "now";
+    }
+  }
+
   private async checkTransactions(cursor: string): Promise<string> {
     // Fetch recent payments for the account
+    // Note: We use the 'payments' stream to ensure we process every payment operation.
+    // However, payments don't include the transaction Memo by default, which we need to match the session ID.
+    // This requires an N+1 API call (record.transaction()) for each payment found.
+    // We stick to this approach to maintain cursor compatibility with existing deployments (switching to 'transactions' stream changes cursor semantics).
     let payments;
     try {
       payments = await this.server.payments()
