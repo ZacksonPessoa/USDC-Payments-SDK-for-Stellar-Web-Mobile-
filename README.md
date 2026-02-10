@@ -206,7 +206,7 @@ This SDK has been updated to strictly separate client and server responsibilitie
 
 ---
 
-## 🛡️ Production-Lite Hardening (v0.3.0)
+## 🛡️ Production-Lite Hardening (v0.3.2)
 
 For "production-lite" environments (e.g., 2 load-balanced instances), the `PaymentMonitor` now includes built-in concurrency controls.
 
