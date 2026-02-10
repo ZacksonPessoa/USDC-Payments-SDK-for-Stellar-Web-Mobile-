@@ -1,4 +1,4 @@
-[![Release](https://img.shields.io/badge/release-v0.3.1--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.1-mvp)
+[![Release](https://img.shields.io/badge/release-v0.3.2--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.2-mvp)
 [![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
 
 # USDC Payments SDK for Stellar (Web + Mobile)
