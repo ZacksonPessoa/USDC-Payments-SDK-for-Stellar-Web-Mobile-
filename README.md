@@ -14,7 +14,7 @@
 
 **This SDK is currently in Public Beta.**
 
-*   **Status:** Pilot / Testing (v0.3.1-mvp)
+*   **Status:** Pilot / Testing (v0.3.2-mvp)
 *   **Network:** Stellar Testnet (Primary), Mainnet (Experimental)
 *   **Use Case:** Development, Integration Testing, Pilot Programs.
 
