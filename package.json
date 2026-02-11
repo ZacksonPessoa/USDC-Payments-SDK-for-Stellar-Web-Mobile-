@@ -22,10 +22,11 @@
       "import": "./dist/index.js"
     },
     "./server": {
-      "types": "./dist/server/index.d.ts",
-      "import": "./dist/server/index.js",
-      "require": "./dist/server/index.cjs"
-    }
+        "types": "./dist/server.d.ts",
+        "import": "./dist/server/index.js",
+        "require": "./dist/server/index.cjs"
+      }
+
   },
   "files": [
     "dist",
@@ -42,8 +43,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:webhook": "npm run build && node examples/secure-server-example.mjs",
-    "verify": "node scripts/verify-build.mjs"
+    "test:webhook": "npm run build && node examples/secure-server-example.mjs"
+    
   },
   "dependencies": {
     "stellar-sdk": "^13.3.0"

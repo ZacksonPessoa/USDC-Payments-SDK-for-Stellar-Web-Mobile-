@@ -6,7 +6,8 @@ const INDEX_JS = path.join(DIST_DIR, 'index.js');
 const INDEX_DTS = path.join(DIST_DIR, 'index.d.ts');
 const SERVER_INDEX_JS = path.join(DIST_DIR, 'server/index.js');
 const SERVER_INDEX_CJS = path.join(DIST_DIR, 'server/index.cjs');
-const SERVER_INDEX_DTS = path.join(DIST_DIR, 'server/index.d.ts');
+const SERVER_INDEX_DTS = path.join(DIST_DIR, 'server.d.ts');
+
 
 const REQUIRED_FILES = [
   INDEX_JS,
