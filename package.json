@@ -37,7 +37,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "clean": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\"",
-    "prepack": "tsup",
+    
     "verify": "node scripts/verify-build.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
