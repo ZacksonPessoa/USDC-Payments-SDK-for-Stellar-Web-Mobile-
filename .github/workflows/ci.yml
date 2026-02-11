@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build SDK
+      run: npm run build
+
+    - name: Verify Build Output
+      run: npm run verify
+
+    - name: Run Tests
+      run: npm test
+
+    - name: Create Package Tarball
+      run: npm pack
+
+    - name: Test Installation in Demo App
+      run: |
+        TARBALL=$(ls *.tgz)
+        echo "Installing $TARBALL into demo app..."
+        cd examples/demo-vite-react
+        # Install regular dependencies first (ignore SDK link if it fails, or let it fail and fix)
+        # We want to ensure we install the tarball, not the symlink.
+        # But npm install will respect package.json.
+        # Let's remove the file: dependency first to ensure clean state for tarball install
+        sed -i '/@zacksonpessoa\/usdc-payments-sdk/d' package.json
+        npm install
+        npm install "../../$TARBALL"
+        npm run build
