@@ -22,7 +22,7 @@
       "import": "./dist/index.js"
     },
     "./server": {
-        "types": "./dist/server.d.ts",
+        "types": "./dist/server/index.d.ts",
         "import": "./dist/server/index.js",
         "require": "./dist/server/index.cjs"
       }
@@ -37,7 +37,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\"",
     "prepack": "tsup",
     "verify": "node scripts/verify-build.mjs",
     "test": "vitest run",
@@ -47,13 +47,17 @@
     
   },
   "dependencies": {
-    "stellar-sdk": "^13.3.0",
-    "sqlite3": "^5.1.7"
+    "stellar-sdk": "^13.3.0"
   },
   "peerDependencies": {
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
-    
+    "react-dom": "^19.2.0",
+    "sqlite3": "^5.1.7"
+  },
+  "peerDependenciesMeta": {
+    "sqlite3": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "25.0.9",
