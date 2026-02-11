@@ -106,17 +106,32 @@ The payment lifecycle consists of two distinct phases: **Submission** (Client) a
 
 ### Installation
 
+**Install via GitHub Release (Recommended for Beta):**
+
+1. Go to [Releases](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases).
+2. Download the `.tgz` file for the latest version.
+3. Install in your project:
+
+```bash
+npm install ./path/to/zacksonpessoa-usdc-payments-sdk-v0.3.2.tgz
+```
+
+**Install via NPM (Coming Soon):**
+
 ```bash
 npm install @zacksonpessoa/usdc-payments-sdk
 ```
 
-**Note:** If you are using the server-side components (like `PaymentMonitor`), you must also install `sqlite3` as a peer dependency:
+**Peer Dependencies:**
 
-```bash
-npm install sqlite3
-```
-
-React components (`PayWithUSDC`) require `react` and `react-dom` (v19+) to be installed in your project.
+*   **Server-Side:** If using `PaymentMonitor`, install `sqlite3`:
+    ```bash
+    npm install sqlite3
+    ```
+*   **Client-Side:** If using `PayWithUSDC`, ensure you have React 19+:
+    ```bash
+    npm install react@^19.0.0 react-dom@^19.0.0
+    ```
 
 ### 1. Frontend: Collect Payment
 
