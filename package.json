@@ -1,6 +1,6 @@
 {
   "name": "@zacksonpessoa/usdc-payments-sdk",
-  "version": "0.3.2-mvp",
+  "version": "0.3.3-mvp",
   "description": "One-line checkout SDK to pay with USDC on Stellar (Web + Mobile).",
   "license": "ISC",
   "author": "Zackson Pessoa",
@@ -43,7 +43,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:webhook": "npm run build && node examples/secure-server-example.mjs"
-    
   },
   "dependencies": {
     "stellar-sdk": "^13.3.0"
