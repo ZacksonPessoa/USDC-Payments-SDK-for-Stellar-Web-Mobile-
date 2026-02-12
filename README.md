@@ -1,4 +1,4 @@
-[![Release](https://img.shields.io/badge/release-v0.3.2--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.2-mvp)
+﻿[![Release](https://img.shields.io/badge/release-v0.3.3--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.3-mvp)
 [![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
 
 # USDC Payments SDK for Stellar (Web + Mobile)
@@ -10,11 +10,11 @@
 
 ---
 
-## 🚧 Public Beta (Testnet)
+## ðŸš§ Public Beta (Testnet)
 
 **This SDK is currently in Public Beta.**
 
-*   **Status:** Pilot / Testing (v0.3.2-mvp)
+*   **Status:** Pilot / Testing (v0.3.3-mvp)
 *   **Network:** Stellar Testnet (Primary), Mainnet (Experimental)
 *   **Use Case:** Development, Integration Testing, Pilot Programs.
 
@@ -37,7 +37,7 @@ Feedback: [Public Beta Feedback Thread (#11)](https://github.com/ZacksonPessoa/U
 
 ---
 
-## ✨ Features
+## âœ¨ Features
 
 - **`<PayWithUSDC />`** - Drop-in React component for instant checkout
 - **`createPaymentSession()`** - Build Stellar payment transactions
@@ -55,11 +55,11 @@ Feedback: [Public Beta Feedback Thread (#11)](https://github.com/ZacksonPessoa/U
 - **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
 - **Network Support** - Both Testnet and Mainnet (PUBLIC) support
 - **Unit Tests** - Test suite with Vitest (NEW!)
-- **Payment Journey** - Observabilidade do fluxo de pagamento: eventos por sessão e stream SSE. Ver [Payment Journey](docs/payment-journey.md).
+- **Payment Journey** - Observabilidade do fluxo de pagamento: eventos por sessÃ£o e stream SSE. Ver [Payment Journey](docs/payment-journey.md).
 
 ---
 
-## 🔒 Security Model (MVP)
+## ðŸ”’ Security Model (MVP)
 
 This SDK follows a **server-side trust model**.
 
@@ -80,7 +80,7 @@ For a complete security description and vulnerability reporting guidelines, see 
 
 ---
 
-## 🔄 Payment Flow
+## ðŸ”„ Payment Flow
 
 The payment lifecycle consists of two distinct phases: **Submission** (Client) and **Confirmation** (Server).
 
@@ -102,7 +102,7 @@ The payment lifecycle consists of two distinct phases: **Submission** (Client) a
 
 ---
 
-## 🚀 Quick Start
+## ðŸš€ Quick Start
 
 ### Installation
 
@@ -112,16 +112,16 @@ You can install the SDK directly from the GitHub Release tarball without cloning
 
 **Option 1: Direct Install (Easiest)**
 ```bash
-npm install https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/download/v0.3.2-mvp/zacksonpessoa-usdc-payments-sdk-0.3.2-mvp.tgz
+npm install https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/download/v0.3.3-mvp/zacksonpessoa-usdc-payments-sdk-0.3.3-mvp.tgz
 ```
 
 **Option 2: Download & Install**
 1. Go to [Releases](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases).
-2. Download the `.tgz` file for the latest version (e.g., `zacksonpessoa-usdc-payments-sdk-0.3.2-mvp.tgz`).
+2. Download the `.tgz` file for the latest version (e.g., `zacksonpessoa-usdc-payments-sdk-0.3.3-mvp.tgz`).
 3. Install in your project:
 
 ```bash
-npm install ./path/to/zacksonpessoa-usdc-payments-sdk-0.3.2-mvp.tgz
+npm install ./path/to/zacksonpessoa-usdc-payments-sdk-0.3.3-mvp.tgz
 ```
 
 **Install via NPM (Coming Soon):**
@@ -220,7 +220,7 @@ app.post('/webhooks/payment', (req, res) => {
 
 ---
 
-## 🔒 Security Improvements (v0.2.0-mvp)
+## ðŸ”’ Security Improvements (v0.2.0-mvp)
 
 This SDK has been updated to strictly separate client and server responsibilities.
 - **Client:** Handles only transaction building, signing, and submission.
@@ -229,7 +229,7 @@ This SDK has been updated to strictly separate client and server responsibilitie
 
 ---
 
-## 🛡️ Production-Lite Hardening (v0.3.2)
+## ðŸ›¡ï¸ Production-Lite Hardening (v0.3.3)
 
 For "production-lite" environments (e.g., 2 load-balanced instances), the `PaymentMonitor` now includes built-in concurrency controls.
 
@@ -250,26 +250,26 @@ To scale beyond "lite" usage (SQLite on shared disk), implement the `Persistence
 
 ---
 
-## 📦 API Reference
+## ðŸ“¦ API Reference
 
 ### PayWithUSDC Component
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `amount` | `number` | ✅ | Payment amount (must be > 0) |
-| `destination` | `string` | ✅ | Destination Stellar address (56 chars, starts with G) |
-| `wallet` | `WalletAdapter` | ✅ | Wallet implementation (e.g., FreighterWallet) |
-| `assetCode` | `string` | ❌ | Asset code (default: "XLM") |
-| `issuer` | `string` | ❌ | Asset issuer (required for non-native assets like USDC) |
-| `memo` | `string` | ❌ | Transaction memo (ID) - Important for payment tracking |
-| `network` | `"TESTNET" \| "PUBLIC"` | ❌ | Network (default: "TESTNET") |
-| `source` | `string` | ❌ | Source address (optional, uses wallet if not provided) |
-| `label` | `string` | ❌ | Button label (default: "Pay") |
-| `onSuccess` | `(hash: string) => void` | ❌ | Success callback (UI only - transaction submitted) |
-| `onError` | `(error: unknown) => void` | ❌ | Error callback |
-| `onStatusChange` | `(status: string) => void` | ❌ | Status change callback (NEW!) - Tracks payment flow: "creating", "signing", "submitting", "submitted", "failed" |
+| `amount` | `number` | âœ… | Payment amount (must be > 0) |
+| `destination` | `string` | âœ… | Destination Stellar address (56 chars, starts with G) |
+| `wallet` | `WalletAdapter` | âœ… | Wallet implementation (e.g., FreighterWallet) |
+| `assetCode` | `string` | âŒ | Asset code (default: "XLM") |
+| `issuer` | `string` | âŒ | Asset issuer (required for non-native assets like USDC) |
+| `memo` | `string` | âŒ | Transaction memo (ID) - Important for payment tracking |
+| `network` | `"TESTNET" \| "PUBLIC"` | âŒ | Network (default: "TESTNET") |
+| `source` | `string` | âŒ | Source address (optional, uses wallet if not provided) |
+| `label` | `string` | âŒ | Button label (default: "Pay") |
+| `onSuccess` | `(hash: string) => void` | âŒ | Success callback (UI only - transaction submitted) |
+| `onError` | `(error: unknown) => void` | âŒ | Error callback |
+| `onStatusChange` | `(status: string) => void` | âŒ | Status change callback (NEW!) - Tracks payment flow: "creating", "signing", "submitting", "submitted", "failed" |
 
-> ⚠️ **Important – Payment Confirmation**
+> âš ï¸ **Important â€“ Payment Confirmation**
 >
 > The `onSuccess` callback indicates that the transaction was **successfully signed and submitted** to the Stellar network.
 > It does **not** mean the payment is confirmed or settled.
@@ -302,7 +302,7 @@ Crypto helpers for secure webhook communication.
 
 ---
 
-## 🧪 Examples
+## ðŸ§ª Examples
 
 ### Secure Server Example
 
@@ -315,7 +315,7 @@ node examples/secure-server-example.mjs
 
 ---
 
-## 🔧 Configuration
+## ðŸ”§ Configuration
 
 ### Build Configuration
 
@@ -325,9 +325,9 @@ The SDK builds to:
 
 ---
 
-## 📊 Project Status
+## ðŸ“Š Project Status
 
-### ✅ Phase 1 - Core SDK (COMPLETE)
+### âœ… Phase 1 - Core SDK (COMPLETE)
 
 - [x] **Core SDK with React component** - `<PayWithUSDC />` component fully functional
 - [x] **Transaction builder** - `createPaymentSession()` creates Stellar payment transactions
@@ -339,18 +339,18 @@ The SDK builds to:
 - [x] **Server-side payment monitoring** - `PaymentMonitor` for secure verification
 - [x] **Secure webhooks** - Server-side webhook system with HMAC-SHA256 signatures
 
-### ✅ Phase 2 - Advanced Features (COMPLETE)
+### âœ… Phase 2 - Advanced Features (COMPLETE)
 
-- [x] **Backend webhook support** ✅ - Server-side webhooks implemented
-- [x] **SQLite Persistence** ✅ - `PaymentMonitor` persists state to `usdc_payments.db`
-- [x] **SEP-24 on/off-ramp helpers** ✅ - Basic SEP-24 integration helpers implemented
-- [x] **Payment confirmation flows** ✅ - PaymentStatusTracker and status tracking implemented
-- [x] **Error handling improvements** ✅ - Custom error classes and improved error handling
-- [x] **Retry logic** ✅ - Automatic retry with exponential backoff for transactions
-- [x] **Unit tests** ✅ - Test suite configured with Vitest
-- [x] **PaymentMonitor tests** ✅ - Tests for PaymentMonitor and WebhookSender implemented
+- [x] **Backend webhook support** âœ… - Server-side webhooks implemented
+- [x] **SQLite Persistence** âœ… - `PaymentMonitor` persists state to `usdc_payments.db`
+- [x] **SEP-24 on/off-ramp helpers** âœ… - Basic SEP-24 integration helpers implemented
+- [x] **Payment confirmation flows** âœ… - PaymentStatusTracker and status tracking implemented
+- [x] **Error handling improvements** âœ… - Custom error classes and improved error handling
+- [x] **Retry logic** âœ… - Automatic retry with exponential backoff for transactions
+- [x] **Unit tests** âœ… - Test suite configured with Vitest
+- [x] **PaymentMonitor tests** âœ… - Tests for PaymentMonitor and WebhookSender implemented
 
-### 📈 Releases / Hardening Track
+### ðŸ“ˆ Releases / Hardening Track
 
 - **v0.2.0-mvp**: MVP Hardening
     - [x] Rate limiting
@@ -363,22 +363,22 @@ The SDK builds to:
     - [x] Multi-instance safety (SQLite/DB backed)
     - [x] Configurable polling & lock TTL
 
-### 📋 Phase 3 - Mobile Support (PLANNED)
+### ðŸ“‹ Phase 3 - Mobile Support (PLANNED)
 
-- [ ] **React Native SDK** ❌
-- [ ] **Mobile wallet adapters** ❌
-- [ ] **Cross-platform examples** ❌
+- [ ] **React Native SDK** âŒ
+- [ ] **Mobile wallet adapters** âŒ
+- [ ] **Cross-platform examples** âŒ
 
-### 🎯 Phase 4 - Production Ready (PLANNED)
+### ðŸŽ¯ Phase 4 - Production Ready (PLANNED)
 
-- [ ] **Mainnet production release** ❌ - Currently testnet only
-- [ ] **CI/CD pipeline** ❌ - No automated testing/deployment
-- [ ] **Merchant pilot programs** ❌
-- [ ] **Comprehensive documentation** ⚠️ - Basic docs exist, needs expansion
+- [ ] **Mainnet production release** âŒ - Currently testnet only
+- [ ] **CI/CD pipeline** âŒ - No automated testing/deployment
+- [ ] **Merchant pilot programs** âŒ
+- [ ] **Comprehensive documentation** âš ï¸ - Basic docs exist, needs expansion
 
 ---
 
-## 🔍 Current Implementation Details
+## ðŸ” Current Implementation Details
 
 ### What Works
 
@@ -412,6 +412,6 @@ The SDK builds to:
 
 ---
 
-## 📄 License
+## ðŸ“„ License
 
 MIT License - see [LICENSE](LICENSE) file for details.
