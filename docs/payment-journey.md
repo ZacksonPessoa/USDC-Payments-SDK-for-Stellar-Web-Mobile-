@@ -6,8 +6,8 @@ The Payment Journey feature records and streams events for each payment session 
 
 Set the environment variable:
 
-- `PAYMENT_JOURNEY_ENABLED=true` (default) — events are emitted when a journey emitter is set.
-- `PAYMENT_JOURNEY_ENABLED=false` — no journey events are emitted.
+- `PAYMENT_JOURNEY_ENABLED=true` — events are emitted when a journey emitter is set.
+- `PAYMENT_JOURNEY_ENABLED=false` (default) — no journey events are emitted.
 
 ## Setup (Server)
 
