@@ -9,8 +9,8 @@
  * NOTE: This example uses HTTP for demonstration. In production, ALWAYS use HTTPS for webhooks.
  */
 
-import { PaymentMonitor, generateSignature, verifySignature } from "../dist/server.mjs";
-import { createPaymentSession } from "../dist/index.mjs";
+import { PaymentMonitor, generateSignature, verifySignature } from "../dist/server/index.js";
+import { createPaymentSession } from "../dist/index.js";
 import http from "http";
 import * as StellarSDK from "stellar-sdk";
 

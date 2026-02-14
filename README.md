@@ -311,6 +311,7 @@ Monitors an account for specific incoming payments, with built-in SQLite persist
 | `lockTtlMs` | `number` | `20000` | Lock TTL for concurrency control |
 | `instanceId` | `string` | `UUID` | Unique ID for this monitor instance |
 | `adapter` | `PersistenceAdapter` | `Database` | Custom persistence adapter |
+| `journeyStore` | `JourneyStorageAdapter` | `undefined` | Optional: payment journey event store for observability |
 | `rateLimit` | `RateLimitConfig` | `{windowMs: 60000, max: 100}` | Rate limit configuration |
 
 #### `generateSignature(payload, secret)` / `verifySignature(payload, signature, secret)`
