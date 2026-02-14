@@ -1,6 +1,6 @@
 {
   "name": "@zacksonpessoa/usdc-payments-sdk",
-  "version": "0.3.3-mvp",
+  "version": "0.3.4-mvp",
   "description": "One-line checkout SDK to pay with USDC on Stellar (Web + Mobile).",
   "license": "MIT",
   "author": "Zackson Pessoa",
@@ -37,7 +37,6 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "clean": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\"",
-    
     "verify": "node scripts/verify-build.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
