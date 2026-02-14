@@ -15,5 +15,8 @@ npm-debug.log
 # Database
 *.db
 
+# Pack artifacts
+*.tgz
+
 # TypeScript
 *.tsbuildinfo
