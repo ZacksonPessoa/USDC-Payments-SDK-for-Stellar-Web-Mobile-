@@ -6,7 +6,6 @@ name: Release
       - "v*"
   workflow_dispatch:
 
-
 permissions:
   contents: write
 
@@ -14,9 +13,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
@@ -33,7 +34,7 @@ jobs:
       - name: Run Tests
         run: npm test
 
-            - name: Create Package Tarball
+      - name: Create Package Tarball
         run: |
           npm pack
           echo "Tarballs generated:"
@@ -47,4 +48,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
