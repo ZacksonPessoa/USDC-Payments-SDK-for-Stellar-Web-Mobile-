@@ -5,6 +5,11 @@ name: Release
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v0.3.4-mvp)"
+        required: true
+        default: "v0.3.4-mvp"
 
 permissions:
   contents: write
@@ -43,7 +48,7 @@ jobs:
       - name: Create GitHub Release + Upload .tgz
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           files: "*.tgz"
           generate_release_notes: true
         env:
