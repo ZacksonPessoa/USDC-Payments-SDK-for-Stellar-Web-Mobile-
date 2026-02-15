@@ -112,7 +112,7 @@ You can install the SDK directly from the GitHub Release tarball without cloning
 
 **Option 1: Direct Install (Easiest)**
 ```bash
-npm install https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/download/v0.3.3-mvp/zacksonpessoa-usdc-payments-sdk-0.3.3-mvp.tgz
+npm install https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/download/v0.3.4-mvp/zacksonpessoa-usdc-payments-sdk-0.3.4-mvp.tgz
 ```
 
 **Option 2: Download & Install**
