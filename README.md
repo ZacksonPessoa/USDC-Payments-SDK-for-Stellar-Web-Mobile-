@@ -1,4 +1,4 @@
-[![Release](https://img.shields.io/badge/release-v0.3.3--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.3-mvp)
+[![Release](https://img.shields.io/badge/release-v0.3.4--mvp-blue)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/tag/v0.3.4-mvp)
 [![Security](https://img.shields.io/badge/security-MVP--secure-green)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/security)
 
 # USDC Payments SDK for Stellar (Web + Mobile)
@@ -14,7 +14,7 @@
 
 **This SDK is currently in Public Beta.**
 
-*   **Status:** Pilot / Testing (v0.3.3-mvp)
+**Status:** Pilot / Testing (v0.3.4-mvp)
 *   **Network:** Stellar Testnet (Primary), Mainnet (Experimental)
 *   **Use Case:** Development, Integration Testing, Pilot Programs.
 
@@ -117,11 +117,11 @@ npm install https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-M
 
 **Option 2: Download & Install**
 1. Go to [Releases](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases).
-2. Download the `.tgz` file for the latest version (e.g., `zacksonpessoa-usdc-payments-sdk-0.3.3-mvp.tgz`).
+2. Download the `.tgz` file for the latest version (e.g., `zacksonpessoa-usdc-payments-sdk-0.3.4-mvp.tgz`).
 3. Install in your project:
 
 ```bash
-npm install ./path/to/zacksonpessoa-usdc-payments-sdk-0.3.3-mvp.tgz
+npm install ./path/to/zacksonpessoa-usdc-payments-sdk-0.3.4-mvp.tgz
 ```
 
 **Install via NPM (Coming Soon):**
