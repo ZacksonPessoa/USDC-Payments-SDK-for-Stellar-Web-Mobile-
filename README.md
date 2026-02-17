@@ -21,19 +21,68 @@
 **Not yet intended for large-scale production use.**
 We are currently hardening the server-side components ("Production-Lite") and finalizing mobile support.
 
-### How to test (Quickstart)
-See the [Examples](./examples/) directory for a complete reference implementation:
-1.  Clone the repo.
-2.  `npm install`
-3.  `node examples/secure-server-example.mjs` (Simulates a full payment flow).
+---
+
+## 🚀 Quick Start / Run the Demo
+
+**Option 1: Fastest way to test (No clone required)**
+
+1. Create a folder and install the SDK from the release tarball:
+```bash
+mkdir usdc-demo && cd usdc-demo
+npm init -y
+npm install https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/download/v0.3.4-mvp/zacksonpessoa-usdc-payments-sdk-0.3.4-mvp.tgz
+npm install sqlite3 # Peer dependency for server
+```
+
+2. Create a file named `test.mjs` with the following content:
+```javascript
+import { PaymentMonitor } from "@zacksonpessoa/usdc-payments-sdk/server";
+
+// 1. Configure the monitor
+const monitor = new PaymentMonitor("TESTNET", "GACCOUNT...", {
+  url: "http://localhost:3000/webhook",
+  secret: "secret"
+});
+
+// 2. Start monitoring
+console.log("Starting Payment Monitor...");
+monitor.start();
+
+// 3. Keep alive
+setInterval(() => {}, 1000);
+```
+
+3. Run it:
+```bash
+node test.mjs
+```
+
+**Option 2: Clone and run the full demo**
+
+```bash
+git clone https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-.git
+cd USDC-Payments-SDK-for-Stellar-Web-Mobile-
+npm install
+npm run build
+node examples/secure-server-example.mjs
+```
 
 ### How to report issues
 Please report bugs or feature requests using our [GitHub Issues](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/issues).
-*   Use the **Bug Report** template for unexpected behavior.
-*   Use the **Feature Request** template for new ideas.
-
 Feedback: [Public Beta Feedback Thread (#11)](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/issues/11).
 
+---
+
+## 🧠 How it works
+
+The SDK abstracts the complexity of Stellar payments into a simple flow:
+
+1.  **Payment Session:** Merchant creates a unique `sessionId` (Memo) and registers it with the `PaymentMonitor` (Server).
+2.  **Wallet Connection:** User connects their wallet (e.g., Freighter) via the `<PayWithUSDC />` component.
+3.  **Submission:** User signs the transaction. The SDK submits it to the Stellar Network (Horizon).
+4.  **Verification:** The `PaymentMonitor` (Server) detects the transaction on-chain, validates the amount/asset, and marks it as confirmed.
+5.  **Finalization:** The Server sends a signed webhook to your backend to fulfill the order.
 
 ---
 
@@ -43,19 +92,27 @@ Feedback: [Public Beta Feedback Thread (#11)](https://github.com/ZacksonPessoa/U
 - **`createPaymentSession()`** - Build Stellar payment transactions
 - **`signAndSubmit()`** - Sign and submit transactions to Horizon
 - **`PaymentMonitor`** - Secure Server-Side Payment Verification with SQLite Persistence
-- **`PersistenceAdapter`** - Pluggable storage backend (SQLite default)
 - **Rate Limiting** - Built-in protection for payment session registration
 - **Production-Lite Mode** - Polling locks for multi-instance safety
-- **`PaymentStatusTracker`** - Track payment status through the entire flow (NEW!)
-- **`SEP24Helper`** - SEP-24 on/off-ramp integration helpers (NEW!)
-- **Custom Error Classes** - Detailed error handling with specific error types (NEW!)
-- **Retry Logic** - Automatic retry with exponential backoff (NEW!)
+- **`PaymentStatusTracker`** - Track payment status through the entire flow
+- **`SEP24Helper`** - SEP-24 on/off-ramp integration helpers
+- **Retry Logic** - Automatic retry with exponential backoff
 - **Wallet Integration** - Built-in Freighter wallet adapter
 - **TypeScript Support** - Full type safety and IntelliSense
 - **Multi-Asset Support** - XLM, USDC, and custom Stellar assets
 - **Network Support** - Both Testnet and Mainnet (PUBLIC) support
-- **Unit Tests** - Test suite with Vitest (NEW!)
-- **Payment Journey** - Observability of the payment flow: per-session events and SSE stream. See [Payment Journey](docs/payment-journey.md).
+
+---
+
+## 🔍 Observability (Payment Journey)
+
+The SDK includes a powerful **Payment Journey** feature to track and visualize the entire lifecycle of a payment.
+
+*   **Events:** `SESSION_CREATED` -> `TX_SUBMITTED` -> `TX_SEEN_ON_NETWORK` -> `TX_CONFIRMED` -> `WEBHOOK_SENT`.
+*   **Storage:** Events are stored in the SQLite database alongside payment records.
+*   **Stream:** Supports Server-Sent Events (SSE) for real-time frontend updates.
+
+See [docs/payment-journey.md](docs/payment-journey.md) for setup instructions.
 
 ---
 
@@ -64,17 +121,15 @@ Feedback: [Public Beta Feedback Thread (#11)](https://github.com/ZacksonPessoa/U
 This SDK follows a **server-side trust model**.
 
 The client (web or mobile) is **never trusted** to confirm payments.
-
 All payment confirmations are performed **server-side**, based on **on-chain verification** by monitoring the Stellar network (Horizon).
 
-### Enforced Guarantees (v0.2.0-mvp)
-- **Submission != Confirmation:** Client handles submission; Server handles confirmation.
-- **On-Chain Verification:** Payments are confirmed only after detecting the transaction on the Stellar ledger.
-- **Persistence:** The `PaymentMonitor` uses a local SQLite database (`usdc_payments.db`) to persist state, ensuring no payments are missed during server restarts.
-- **Strict Validation:** Destination, Asset, Issuer, and Amount are strictly validated against the registered intent.
-- **Idempotency:** Processed transaction hashes are stored to prevent duplicate processing.
-- **Expiration:** Pending payment intents expire automatically (default: 15 minutes).
-- **Secure Webhooks:** Merchant webhooks are sent server-to-server and signed with HMAC-SHA256.
+### Production Checklist
+Before going live, ensure you have:
+- [ ] **Environment Variables:** Set `HORIZON_URL`, `NETWORK_PASSPHRASE`, and `WEBHOOK_SECRET` securely.
+- [ ] **Idempotency:** The `PaymentMonitor` handles this, but ensure your webhook handler is also idempotent.
+- [ ] **Webhook Verification:** **Always** verify the `X-Signature` header in your webhook handler.
+- [ ] **Persistence:** Ensure the `sqlite3` database file is on a persistent volume (or implement the Postgres adapter).
+- [ ] **HTTPS:** Ensure your webhook endpoint is HTTPS.
 
 For a complete security description and vulnerability reporting guidelines, see [`SECURITY.md`](./SECURITY.md).
 
@@ -102,33 +157,7 @@ The payment lifecycle consists of two distinct phases: **Submission** (Client) a
 
 ---
 
-## 🚀 Quick Start
-
-### Installation
-
-**Install via GitHub Release (Recommended for Beta):**
-
-You can install the SDK directly from the GitHub Release tarball without cloning the repo.
-
-**Option 1: Direct Install (Easiest)**
-```bash
-npm install https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases/download/v0.3.4-mvp/zacksonpessoa-usdc-payments-sdk-0.3.4-mvp.tgz
-```
-
-**Option 2: Download & Install**
-1. Go to [Releases](https://github.com/ZacksonPessoa/USDC-Payments-SDK-for-Stellar-Web-Mobile-/releases).
-2. Download the `.tgz` file for the latest version (e.g., `zacksonpessoa-usdc-payments-sdk-0.3.4-mvp.tgz`).
-3. Install in your project:
-
-```bash
-npm install ./path/to/zacksonpessoa-usdc-payments-sdk-0.3.4-mvp.tgz
-```
-
-**Install via NPM (Coming Soon):**
-
-```bash
-npm install @zacksonpessoa/usdc-payments-sdk
-```
+## 🚀 Usage Guide
 
 ### Browser vs Server Usage
 
@@ -236,15 +265,6 @@ app.post('/webhooks/payment', (req, res) => {
 
 ---
 
-## 🔒 Security Improvements (v0.2.0-mvp)
-
-This SDK has been updated to strictly separate client and server responsibilities.
-- **Client:** Handles only transaction building, signing, and submission.
-- **Server:** Handles monitoring, validation, persistence (SQLite), and confirmation webhooks.
-- **Persistence:** The `PaymentMonitor` is now robust against server restarts, using a local SQLite database to track processed transactions and the Horizon cursor.
-
----
-
 ## 🛡️ Production-Lite Hardening (v0.3.4)
 
 For "production-lite" environments (e.g., 2 load-balanced instances), the `PaymentMonitor` now includes built-in concurrency controls.
@@ -342,6 +362,24 @@ The SDK builds to:
 
 ---
 
+## 🛣️ Roadmap & Milestones (SCF Build)
+
+We are applying for the Stellar Community Fund (SCF) Build Award to bring this SDK to production.
+
+### Milestone 1: Mobile Support (Weeks 1-4)
+*   **Goal:** Enable native mobile apps to accept USDC payments.
+*   **Deliverables:** React Native SDK, Mobile Wallet Adapter, Expo Demo App.
+
+### Milestone 2: Mainnet Readiness (Weeks 5-8)
+*   **Goal:** Ensure robustness for real-money transactions.
+*   **Deliverables:** Postgres/Redis Adapter, Recovery Tools, Failure Mode Analysis.
+
+### Milestone 3: Developer Adoption (Weeks 9-12)
+*   **Goal:** Lower barrier to entry.
+*   **Deliverables:** Documentation Refresh, Docker Reference Deployments, Production Checklist.
+
+---
+
 ## 📊 Project Status
 
 ### ✅ Phase 1 - Core SDK (COMPLETE)
@@ -379,19 +417,6 @@ The SDK builds to:
     - [x] Polling lock (concurrency control)
     - [x] Multi-instance safety (SQLite/DB backed)
     - [x] Configurable polling & lock TTL
-
-### 📋 Phase 3 - Mobile Support (PLANNED)
-
-- [ ] **React Native SDK** ❌
-- [ ] **Mobile wallet adapters** ❌
-- [ ] **Cross-platform examples** ❌
-
-### 🎯 Phase 4 - Production Ready (PLANNED)
-
-- [ ] **Mainnet production release** ❌ - Currently testnet only
-- [ ] **CI/CD pipeline** ❌ - No automated testing/deployment
-- [ ] **Merchant pilot programs** ❌
-- [ ] **Comprehensive documentation** ⚠️ - Basic docs exist, needs expansion
 
 ---
 
