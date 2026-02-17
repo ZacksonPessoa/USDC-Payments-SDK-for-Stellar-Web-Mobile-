@@ -12,21 +12,60 @@ The SDK implements a split architecture to ensure security:
 
 ```mermaid
 graph TB
-    subgraph "Client Side (Browser)"
-        A[React App] --> B[PayWithUSDC]
-        B --> C[Wallet (Freighter)]
-        C --> D[Stellar Horizon]
+    subgraph "Client App"
+        A[React / Mobile App] -- uses --> B[PayWithUSDC / SDK]
+        B -- connects to --> C[Wallet (Freighter / Mobile)]
     end
-    
-    subgraph "Server Side (Node.js)"
-        E[PaymentMonitor] --> D
-        E --> F[Merchant Backend]
-        E --> G[(SQLite DB)]
-    end
-    
+
     subgraph "Stellar Network"
-        D --> H[Blockchain Ledger]
+        D[Horizon API] -- updates --> L[Ledger]
+        C -- signs & submits tx --> D
     end
+    
+    subgraph "Your Backend Infrastructure"
+        E[PaymentMonitor Server] -- polls --> D
+        E -- persists state --> G[(SQLite / Postgres)]
+        E -- sends signed webhook --> F[Merchant API / Order Service]
+    end
+```
+
+---
+
+## 👁️ Payment Journey Observability
+
+The "Payment Journey" feature tracks the lifecycle of a payment session through discrete events.
+
+```mermaid
+graph TD
+    Start((Start)) --> S1[SESSION_CREATED]
+    S1 --> S2[WALLET_CONNECTED]
+    S2 --> S3[TX_SIGN_REQUESTED]
+    S3 --> S4[TX_SUBMITTED]
+    
+    S4 --> H{Network Confirmation}
+    H -- Horizon Poll --> S5[TX_SEEN_ON_NETWORK]
+    S5 --> S6[TX_CONFIRMED]
+
+    S6 --> W1[WEBHOOK_SENT]
+    W1 --> W2[WEBHOOK_ACKED]
+    W2 --> End((Complete))
+
+    subgraph "Client Side"
+    S1
+    S2
+    S3
+    S4
+    end
+
+    subgraph "Server Side (Monitor)"
+    S5
+    S6
+    W1
+    W2
+    end
+
+    style Start fill:#f9f,stroke:#333,stroke-width:2px
+    style End fill:#9f9,stroke:#333,stroke-width:2px
 ```
 
 ---
