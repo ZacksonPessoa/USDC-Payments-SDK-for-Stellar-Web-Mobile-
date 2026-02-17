@@ -8,6 +8,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-blue.svg)](https://www.typescriptlang.org/)
 
+**Trademark notice.** Stellar is a trademark of the Stellar Development Foundation. All rights reserved.
+
+**Independence.** This is an independent project, not affiliated with, sponsored or endorsed by the Stellar Development Foundation. See [Credits / Legal](docs/credits-legal.md).
+
 ---
 
 ## 🚧 Public Beta (Testnet)
@@ -423,3 +427,5 @@ We are applying for the Stellar Community Fund (SCF) Build Award to bring this S
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+**Trademarks & independence:** [Credits / Legal](docs/credits-legal.md).
