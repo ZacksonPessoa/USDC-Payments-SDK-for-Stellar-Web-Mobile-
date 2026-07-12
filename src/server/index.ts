@@ -1,6 +1,7 @@
 export * from "./crypto";
 export * from "./webhookSender";
 export * from "./paymentMonitor";
+export type { PersistenceAdapter, MonitoredPayment } from "./persistence";
 export { Database } from "./db";
 export { JourneyStorage, type JourneyStorageAdapter, type JourneyStorageDb } from "./journeyStorage";
 export { JourneySseManager, formatSseEvent } from "./journeySse";
